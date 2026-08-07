@@ -125,8 +125,17 @@
               BorderThickness="1"
               Background="{StaticResource ArrakisSandFieldBrush}">
 
-        <Grid>
-          <Viewbox Stretch="Uniform">
+        <Grid x:Name="MapViewport"
+              Cursor="SizeAll">
+          <Grid.GestureRecognizers>
+            <PinchGestureRecognizer />
+            <ScrollGestureRecognizer CanHorizontallyScroll="True"
+                                     CanVerticallyScroll="True"
+                                     IsScrollInertiaEnabled="True" />
+          </Grid.GestureRecognizers>
+          <Viewbox x:Name="MapContent"
+                   Stretch="Uniform"
+                   RenderTransformOrigin="0,0">
             <Canvas Width="1000" Height="620">
               <Rectangle Width="1000"
                          Height="620"
