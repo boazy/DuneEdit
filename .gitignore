@@ -1,0 +1,7 @@
+*.suo
+*.sdf
+*.opensdf
+/bin/*
+/obj/*
+/ipch/*
+/Tools/Hsq2Png/lib/*
