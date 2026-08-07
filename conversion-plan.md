@@ -24,9 +24,11 @@ To open a file at startup:
 mise exec -- dotnet run --project src/DuneEdit.Desktop -- /path/to/DUNE21S0.SAV
 ```
 
-The GitHub Actions workflow in `.github/workflows/ci.yml` builds, tests, and starts the desktop application on Windows, macOS, and Linux; the Linux startup check runs under Xvfb. It also publishes self-contained `win-x64`, `osx-arm64`, and `linux-x64` artifacts for the desktop editor and `F7`.
+The GitHub Actions workflow in `.github/workflows/ci.yml` builds, tests, and starts the desktop application on Windows, macOS, and Linux; the Linux startup check runs under Xvfb. It also publishes self-contained `win-x64`, `osx-arm64`, and `linux-x64` artifacts for the desktop editor.
 
 Every publish job executes the self-contained desktop binary with `DOTNET_ROOT` pointed at a nonexistent directory. The binary generates a temporary save, opens it through the desktop view model, changes an editable location field, saves it, reparses it, and reopens it. Linux runs the same artifact scenario under Xvfb.
+
+A stable semantic-version tag in the form `vMAJOR.MINOR.PATCH` creates a GitHub Release when the tagged commit belongs to `main`. The release contains a Windows `.zip` and macOS/Linux `.tar.gz` archives of the self-contained desktop editor; the Unix archives preserve executable permissions.
 
 Compatibility checks covered all five local floppy saves, an editor-written floppy save loaded by the original game in DOSBox Staging, and the CD release's `DNCDPRG.EXE`. The five floppy saves and the CD executable each retained byte-identical output when opened and serialized without edits.
 
