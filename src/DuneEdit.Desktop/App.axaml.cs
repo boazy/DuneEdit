@@ -24,7 +24,23 @@ public partial class App : Application
             window.DataContext = viewModel;
             desktop.MainWindow = window;
 
-            if (desktop.Args?.Contains("--smoke-test", StringComparer.Ordinal) == true)
+            if (desktop.Args?.Contains("--artifact-compatibility-smoke", StringComparer.Ordinal) == true)
+            {
+                window.Opened += async (_, _) =>
+                {
+                    try
+                    {
+                        await ArtifactCompatibilitySmoke.RunAsync(viewModel);
+                        Dispatcher.UIThread.Post(() => desktop.Shutdown(0), DispatcherPriority.Background);
+                    }
+                    catch (Exception error)
+                    {
+                        Console.Error.WriteLine($"DUNEEDIT_ARTIFACT_COMPATIBILITY_FAILED: {error}");
+                        Dispatcher.UIThread.Post(() => desktop.Shutdown(1), DispatcherPriority.Background);
+                    }
+                };
+            }
+            else if (desktop.Args?.Contains("--smoke-test", StringComparer.Ordinal) == true)
             {
                 window.Opened += (_, _) =>
                 {
