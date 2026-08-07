@@ -51,6 +51,9 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: jdx/mise-action@v4
+      - name: Install Linux desktop dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install --yes xvfb libx11-6 libice6 libsm6 libfontconfig1
       - name: Publish desktop
         run: >-
           mise exec -- dotnet publish src/DuneEdit.Desktop/DuneEdit.Desktop.csproj
@@ -69,6 +72,30 @@ jobs:
           --output artifacts/${{ matrix.rid }}/f7
           -p:DebugType=None
           -p:DebugSymbols=false
+      - name: Exercise self-contained desktop artifact (Windows)
+        if: runner.os == 'Windows'
+        timeout-minutes: 3
+        shell: pwsh
+        run: |
+          $env:DOTNET_ROOT = Join-Path $env:RUNNER_TEMP "no-dotnet"
+          $env:DOTNET_MULTILEVEL_LOOKUP = "0"
+          & ".\artifacts\${{ matrix.rid }}\desktop\DuneEdit.Desktop.exe" "--artifact-compatibility-smoke"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Exercise self-contained desktop artifact (macOS)
+        if: runner.os == 'macOS'
+        timeout-minutes: 3
+        run: >-
+          env DOTNET_ROOT="$RUNNER_TEMP/no-dotnet" DOTNET_MULTILEVEL_LOOKUP=0
+          "./artifacts/${{ matrix.rid }}/desktop/DuneEdit.Desktop"
+          --artifact-compatibility-smoke
+      - name: Exercise self-contained desktop artifact (Linux/Xvfb)
+        if: runner.os == 'Linux'
+        timeout-minutes: 3
+        run: >-
+          xvfb-run --auto-servernum
+          env DOTNET_ROOT="$RUNNER_TEMP/no-dotnet" DOTNET_MULTILEVEL_LOOKUP=0
+          "./artifacts/${{ matrix.rid }}/desktop/DuneEdit.Desktop"
+          --artifact-compatibility-smoke
       - uses: actions/upload-artifact@v4
         with:
           name: DuneEdit-${{ matrix.rid }}

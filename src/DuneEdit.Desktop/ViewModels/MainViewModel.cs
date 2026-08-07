@@ -71,7 +71,9 @@ public partial class MainViewModel(IPlatformService platform) : ViewModelBase
     }
 
     [RelayCommand(CanExecute = nameof(CanSave))]
-    private async Task SaveAsync()
+    private Task SaveAsync() => SaveFileAsync();
+
+    public async Task SaveFileAsync()
     {
         if (document is null)
         {
