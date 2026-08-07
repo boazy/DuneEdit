@@ -1,2 +1,16 @@
 [tools]
-dotnet = "latest"
+dotnet = "10.0.302"
+
+[tasks.restore]
+run = "dotnet restore"
+
+[tasks.build]
+depends = ["restore"]
+run = "dotnet build --no-restore"
+
+[tasks.test]
+depends = ["build"]
+run = "dotnet test --no-build"
+
+[tasks.run]
+run = "dotnet run --project src/DuneEdit.Desktop"

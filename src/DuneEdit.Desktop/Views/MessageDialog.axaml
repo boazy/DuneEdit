@@ -1,0 +1,29 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="DuneEdit.Desktop.Views.MessageDialog"
+        Width="460"
+        SizeToContent="Height"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        Background="#201A15"
+        ExtendClientAreaToDecorationsHint="True">
+  <Border Padding="28" BorderBrush="#6D5135" BorderThickness="1">
+    <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="16">
+      <TextBlock x:Name="TitleText"
+                 FontSize="21"
+                 FontWeight="SemiBold"
+                 Foreground="#F2D38B" />
+      <TextBlock x:Name="MessageText"
+                 Grid.Row="1"
+                 TextWrapping="Wrap"
+                 Foreground="#E6DDD2"
+                 LineHeight="22" />
+      <Button Grid.Row="2"
+              HorizontalAlignment="Right"
+              MinWidth="88"
+              Padding="18,8"
+              Content="Close"
+              Click="CloseClicked" />
+    </Grid>
+  </Border>
+</Window>
