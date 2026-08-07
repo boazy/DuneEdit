@@ -9,6 +9,7 @@
     <SolidColorBrush x:Key="SpiceBrush" Color="#C8782B" />
     <SolidColorBrush x:Key="GoldBrush" Color="#EBC700" />
     <SolidColorBrush x:Key="WaterBrush" Color="#59AAFF" />
+    <SolidColorBrush x:Key="AtreidesBrush" Color="#E34D3A" />
     <SolidColorBrush x:Key="BodyBrush" Color="#E6DDD2" />
     <SolidColorBrush x:Key="MutedBrush" Color="#A99A89" />
     <SolidColorBrush x:Key="HairlineBrush" Color="#5A4633" />

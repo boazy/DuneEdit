@@ -3,7 +3,8 @@ namespace DuneEdit.Desktop.ViewModels;
 public sealed class BooleanFieldViewModel(
     string label,
     Func<bool> read,
-    Action<bool> write) : ViewModelBase
+    Action<bool> write,
+    Action? onChanged = null) : ViewModelBase
 {
     public string Label { get; } = label;
 
@@ -19,6 +20,7 @@ public sealed class BooleanFieldViewModel(
 
             write(value);
             OnPropertyChanged();
+            onChanged?.Invoke();
         }
     }
 }

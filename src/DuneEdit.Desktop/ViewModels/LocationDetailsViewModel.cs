@@ -2,7 +2,7 @@ using DuneEdit.Core;
 
 namespace DuneEdit.Desktop.ViewModels;
 
-public sealed class LocationDetailsViewModel
+public sealed class LocationDetailsViewModel : ViewModelBase
 {
     public LocationDetailsViewModel(Sietch location)
     {
@@ -27,7 +27,11 @@ public sealed class LocationDetailsViewModel
             new("Under attack", () => location.UnderAttack, value => location.UnderAttack = value),
             new("Infiltrated", () => location.Infiltrated, value => location.Infiltrated = value),
             new("Battle won", () => location.BattleWon, value => location.BattleWon = value),
-            new("Inventory visible", () => location.InventoryVisible, value => location.InventoryVisible = value),
+            new(
+                "Inventory visible",
+                () => location.InventoryVisible,
+                value => location.InventoryVisible = value,
+                () => OnPropertyChanged(nameof(IsAtreidesControlled))),
             new("Has windtrap", () => location.HasWindtrap, value => location.HasWindtrap = value),
             new("Prospected", () => location.Prospected, value => location.Prospected = value),
             new("Discovered", () => location.Discovered, value => location.Discovered = value),
@@ -60,6 +64,7 @@ public sealed class LocationDetailsViewModel
     public Sietch Location { get; }
     public string Name => Location.Name;
     public string Type => Location.LocationTypeTitle.TrimEnd(':');
+    public bool IsAtreidesControlled => Location.InventoryVisible;
     public IReadOnlyList<NumericFieldViewModel> Resources { get; }
     public IReadOnlyList<BooleanFieldViewModel> Conditions { get; }
     public IReadOnlyList<NumericFieldViewModel> Advanced { get; }

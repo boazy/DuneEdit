@@ -19,6 +19,23 @@
     <KeyBinding Gesture="Ctrl+S" Command="{Binding SaveCommand}" />
   </Window.KeyBindings>
 
+  <Window.Resources>
+    <LinearGradientBrush x:Key="ArrakisSandFieldBrush" StartPoint="0,0" EndPoint="1,1">
+      <GradientStop Offset="0" Color="#FFE681" />
+      <GradientStop Offset="0.48" Color="#F1C452" />
+      <GradientStop Offset="1" Color="#C67A2A" />
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="ErgShadowBrush" StartPoint="0,0" EndPoint="1,1">
+      <GradientStop Offset="0" Color="#7D3616" />
+      <GradientStop Offset="1" Color="#A84E1B" />
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="DuneCrestBrush" StartPoint="0,0" EndPoint="1,0">
+      <GradientStop Offset="0" Color="#FFEFA7" />
+      <GradientStop Offset="1" Color="#F4C750" />
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="MapLabelBrush" Color="#703718" />
+  </Window.Resources>
+
   <Window.Styles>
     <Style Selector="Button.marker">
       <Setter Property="Padding" Value="0" />
@@ -30,14 +47,21 @@
       <Setter Property="Background" Value="Transparent" />
     </Style>
     <Style Selector="Border.marker-frame">
-      <Setter Property="Padding" Value="4" />
-      <Setter Property="CornerRadius" Value="99" />
-      <Setter Property="BorderThickness" Value="2" />
+      <Setter Property="CornerRadius" Value="3" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
       <Setter Property="BorderBrush" Value="Transparent" />
     </Style>
     <Style Selector="Border.marker-frame.selected">
-      <Setter Property="Background" Value="#66311D0B" />
+      <Setter Property="BorderThickness" Value="2" />
       <Setter Property="BorderBrush" Value="{StaticResource GoldBrush}" />
+      <Setter Property="BoxShadow" Value="0 3 10 2 #9A451A08" />
+    </Style>
+    <Style Selector="TextBlock.location-name">
+      <Setter Property="Foreground" Value="{StaticResource WaterBrush}" />
+    </Style>
+    <Style Selector="TextBlock.location-name.atreides">
+      <Setter Property="Foreground" Value="{StaticResource AtreidesBrush}" />
     </Style>
     <Style Selector="NumericUpDown">
       <Setter Property="MinWidth" Value="92" />
@@ -98,33 +122,37 @@
               CornerRadius="5"
               ClipToBounds="True"
               BorderBrush="#6C5130"
-              BorderThickness="1">
-        <Border.Background>
-          <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-            <GradientStop Offset="0" Color="#DCC177" />
-            <GradientStop Offset="0.46" Color="#CDA457" />
-            <GradientStop Offset="1" Color="#A86F35" />
-          </LinearGradientBrush>
-        </Border.Background>
+              BorderThickness="1"
+              Background="{StaticResource ArrakisSandFieldBrush}">
 
         <Grid>
           <Viewbox Stretch="Uniform">
             <Canvas Width="1000" Height="620">
-              <Line StartPoint="100,0" EndPoint="100,620" Stroke="#2B241C" StrokeThickness="1" Opacity="0.10" />
-              <Line StartPoint="200,0" EndPoint="200,620" Stroke="#2B241C" StrokeThickness="1" Opacity="0.10" />
-              <Line StartPoint="300,0" EndPoint="300,620" Stroke="#2B241C" StrokeThickness="1" Opacity="0.10" />
-              <Line StartPoint="400,0" EndPoint="400,620" Stroke="#2B241C" StrokeThickness="1" Opacity="0.10" />
-              <Line StartPoint="500,0" EndPoint="500,620" Stroke="#2B241C" StrokeThickness="1" Opacity="0.10" />
-              <Line StartPoint="600,0" EndPoint="600,620" Stroke="#2B241C" StrokeThickness="1" Opacity="0.10" />
-              <Line StartPoint="700,0" EndPoint="700,620" Stroke="#2B241C" StrokeThickness="1" Opacity="0.10" />
-              <Line StartPoint="800,0" EndPoint="800,620" Stroke="#2B241C" StrokeThickness="1" Opacity="0.10" />
-              <Line StartPoint="900,0" EndPoint="900,620" Stroke="#2B241C" StrokeThickness="1" Opacity="0.10" />
-              <Line StartPoint="0,100" EndPoint="1000,100" Stroke="#2B241C" StrokeThickness="1" Opacity="0.10" />
-              <Line StartPoint="0,200" EndPoint="1000,200" Stroke="#2B241C" StrokeThickness="1" Opacity="0.10" />
-              <Line StartPoint="0,300" EndPoint="1000,300" Stroke="#2B241C" StrokeThickness="1" Opacity="0.10" />
-              <Line StartPoint="0,400" EndPoint="1000,400" Stroke="#2B241C" StrokeThickness="1" Opacity="0.10" />
-              <Line StartPoint="0,500" EndPoint="1000,500" Stroke="#2B241C" StrokeThickness="1" Opacity="0.10" />
-              <Line StartPoint="0,600" EndPoint="1000,600" Stroke="#2B241C" StrokeThickness="1" Opacity="0.10" />
+              <Rectangle Width="1000"
+                         Height="620"
+                         Fill="{StaticResource ArrakisSandFieldBrush}" />
+
+              <Path Data="M -80,118 C 95,46 244,87 391,35 C 552,-21 689,50 842,17 C 930,-2 1016,28 1080,77 L 1080,165 C 921,105 798,151 663,135 C 489,115 371,159 220,142 C 101,129 11,166 -80,222 Z"
+                    Fill="{StaticResource ErgShadowBrush}"
+                    Opacity="0.30" />
+              <Path Data="M -60,364 C 84,289 191,334 316,282 C 449,226 586,283 709,218 C 823,159 959,210 1065,164 L 1065,263 C 936,315 819,291 700,348 C 561,415 425,353 303,404 C 155,466 49,413 -60,481 Z"
+                    Fill="{StaticResource ErgShadowBrush}"
+                    Opacity="0.38" />
+              <Path Data="M -25,161 C 145,91 255,135 394,83 C 540,28 690,93 846,54 C 933,32 1008,54 1037,77"
+                    Stroke="{StaticResource DuneCrestBrush}"
+                    StrokeThickness="13"
+                    StrokeLineCap="Round"
+                    Opacity="0.70" />
+              <Path Data="M -40,432 C 96,358 199,401 318,349 C 447,293 584,347 705,286 C 824,226 932,275 1054,221"
+                    Stroke="{StaticResource DuneCrestBrush}"
+                    StrokeThickness="11"
+                    StrokeLineCap="Round"
+                    Opacity="0.66" />
+              <Path Data="M 67,560 C 174,508 278,547 373,510 C 494,463 596,515 707,474 C 832,427 903,469 1003,432"
+                    Stroke="{StaticResource ErgShadowBrush}"
+                    StrokeThickness="7"
+                    StrokeLineCap="Round"
+                    Opacity="0.28" />
 
               <TextBlock Canvas.Left="22"
                          Canvas.Top="18"
@@ -132,7 +160,7 @@
                          FontSize="11"
                          FontWeight="Bold"
                          LetterSpacing="1.7"
-                         Foreground="#7A4B22"
+                         Foreground="{StaticResource MapLabelBrush}"
                          Opacity="0.72" />
 
               <ItemsControl Width="1000"
@@ -152,20 +180,29 @@
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="vm:LocationMarkerViewModel">
                     <Button Classes="marker"
+                            Width="{Binding Width}"
+                            Height="{Binding Height}"
+                            MinWidth="0"
+                            MinHeight="0"
+                            HorizontalContentAlignment="Stretch"
+                            VerticalContentAlignment="Stretch"
                             Command="{Binding SelectCommand}"
-                            ToolTip.Tip="{Binding Name}"
+                            ToolTip.Tip="{Binding Name}">
+                      <Grid Width="{Binding Width}"
+                            Height="{Binding Height}"
                             RenderTransformOrigin="0.5,0.5">
-                      <Button.RenderTransform>
-                        <ScaleTransform ScaleX="{Binding SelectionScale}"
-                                        ScaleY="{Binding SelectionScale}" />
-                      </Button.RenderTransform>
-                      <Border Classes="marker-frame"
-                              Classes.selected="{Binding IsSelected}">
+                        <Grid.RenderTransform>
+                          <ScaleTransform ScaleX="{Binding SelectionScale}"
+                                          ScaleY="{Binding SelectionScale}" />
+                        </Grid.RenderTransform>
                         <Image Source="{Binding Image}"
                                Width="{Binding Width}"
                                Height="{Binding Height}"
                                Stretch="Uniform" />
-                      </Border>
+                        <Border Classes="marker-frame"
+                                Classes.selected="{Binding IsSelected}"
+                                IsHitTestVisible="False" />
+                      </Grid>
                     </Button>
                   </DataTemplate>
                 </ItemsControl.ItemTemplate>
@@ -230,10 +267,11 @@
               <TextBlock Text="{Binding SelectedLocation.Type}"
                          Classes="section-title" />
               <TextBlock Text="{Binding SelectedLocation.Name}"
+                         Classes="location-name"
+                         Classes.atreides="{Binding SelectedLocation.IsAtreidesControlled}"
                          Margin="0,5,0,0"
                          FontSize="21"
                          FontWeight="SemiBold"
-                         Foreground="{StaticResource WaterBrush}"
                          TextWrapping="Wrap" />
             </StackPanel>
           </Border>
