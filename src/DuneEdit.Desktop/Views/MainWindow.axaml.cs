@@ -208,6 +208,7 @@ public partial class MainWindow : Window
             mapZoom,
             mapTranslation.X,
             mapTranslation.Y);
+        MapZoomText.Text = $"{mapZoom * 100:0}%";
     }
 
     private static bool IsOverButton(object? source)

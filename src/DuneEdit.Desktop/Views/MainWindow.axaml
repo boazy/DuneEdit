@@ -219,6 +219,23 @@
             </Canvas>
           </Viewbox>
 
+          <Border HorizontalAlignment="Right"
+                  VerticalAlignment="Bottom"
+                  Margin="14"
+                  Padding="10,5"
+                  CornerRadius="99"
+                  Background="#D9241B13"
+                  BorderBrush="#8F6941"
+                  BorderThickness="1"
+                  IsHitTestVisible="False">
+            <TextBlock x:Name="MapZoomText"
+                       Text="100%"
+                       FontSize="12"
+                       FontWeight="Bold"
+                       LetterSpacing="0.5"
+                       Foreground="{StaticResource GoldBrush}" />
+          </Border>
+
           <Border IsVisible="{Binding HasNoDocument}"
                   HorizontalAlignment="Center"
                   VerticalAlignment="Center"
