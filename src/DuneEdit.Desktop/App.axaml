@@ -1,0 +1,43 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="DuneEdit.Desktop.App"
+             RequestedThemeVariant="Dark">
+  <Application.Resources>
+    <SolidColorBrush x:Key="NightBrush" Color="#17130F" />
+    <SolidColorBrush x:Key="UmberBrush" Color="#2A2018" />
+    <SolidColorBrush x:Key="SandBrush" Color="#D7B66A" />
+    <SolidColorBrush x:Key="SpiceBrush" Color="#C8782B" />
+    <SolidColorBrush x:Key="GoldBrush" Color="#EBC700" />
+    <SolidColorBrush x:Key="WaterBrush" Color="#59AAFF" />
+    <SolidColorBrush x:Key="BodyBrush" Color="#E6DDD2" />
+    <SolidColorBrush x:Key="MutedBrush" Color="#A99A89" />
+    <SolidColorBrush x:Key="HairlineBrush" Color="#5A4633" />
+  </Application.Resources>
+
+  <Application.Styles>
+    <FluentTheme />
+    <Style Selector="Window">
+      <Setter Property="FontFamily" Value="avares://Avalonia.Fonts.Inter/Assets#Inter" />
+      <Setter Property="Foreground" Value="{StaticResource BodyBrush}" />
+      <Setter Property="Background" Value="{StaticResource NightBrush}" />
+    </Style>
+    <Style Selector="Button.action">
+      <Setter Property="Padding" Value="18,9" />
+      <Setter Property="CornerRadius" Value="3" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Background" Value="#493521" />
+      <Setter Property="BorderBrush" Value="#7E5A33" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="Button.action:pointerover">
+      <Setter Property="Background" Value="#684625" />
+      <Setter Property="BorderBrush" Value="{StaticResource SpiceBrush}" />
+    </Style>
+    <Style Selector="TextBlock.section-title">
+      <Setter Property="FontSize" Value="11" />
+      <Setter Property="FontWeight" Value="Bold" />
+      <Setter Property="LetterSpacing" Value="1.4" />
+      <Setter Property="Foreground" Value="{StaticResource GoldBrush}" />
+    </Style>
+  </Application.Styles>
+</Application>

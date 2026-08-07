@@ -1,7 +1,11 @@
 *.suo
 *.sdf
 *.opensdf
-/bin/*
-/obj/*
-/ipch/*
-/Tools/Hsq2Png/lib/*
+**/bin/
+**/obj/
+**/TestResults/
+**/*.user
+*.DS_Store
+/.local/
+/ipch/
+/Tools/Hsq2Png/lib/

@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: Build and test (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: jdx/mise-action@v4
+      - name: Install Linux desktop dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install --yes xvfb libx11-6 libice6 libsm6 libfontconfig1
+      - name: Build and test
+        run: mise run test
+      - name: Desktop startup smoke
+        if: runner.os != 'Linux'
+        timeout-minutes: 2
+        run: mise exec -- dotnet run --project src/DuneEdit.Desktop/DuneEdit.Desktop.csproj --no-build -- --smoke-test
+      - name: Desktop startup smoke (Xvfb)
+        if: runner.os == 'Linux'
+        timeout-minutes: 2
+        run: mise exec -- xvfb-run --auto-servernum dotnet run --project src/DuneEdit.Desktop/DuneEdit.Desktop.csproj --no-build -- --smoke-test
+
+  publish:
+    name: Publish ${{ matrix.rid }}
+    needs: build-and-test
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            rid: win-x64
+          - os: macos-latest
+            rid: osx-arm64
+          - os: ubuntu-latest
+            rid: linux-x64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: jdx/mise-action@v4
+      - name: Publish desktop
+        run: >-
+          mise exec -- dotnet publish src/DuneEdit.Desktop/DuneEdit.Desktop.csproj
+          --configuration Release
+          --runtime ${{ matrix.rid }}
+          --self-contained true
+          --output artifacts/${{ matrix.rid }}/desktop
+          -p:DebugType=None
+          -p:DebugSymbols=false
+      - name: Publish F7
+        run: >-
+          mise exec -- dotnet publish src/F7/F7.csproj
+          --configuration Release
+          --runtime ${{ matrix.rid }}
+          --self-contained true
+          --output artifacts/${{ matrix.rid }}/f7
+          -p:DebugType=None
+          -p:DebugSymbols=false
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DuneEdit-${{ matrix.rid }}
+          path: artifacts/${{ matrix.rid }}
+          if-no-files-found: error
