@@ -105,6 +105,10 @@
       <Setter Property="CornerRadius" Value="3" />
       <Setter Property="Foreground" Value="{StaticResource GoldBrush}" />
     </Style>
+    <Style Selector="Button.terrain-toggle.enabled">
+      <Setter Property="Background" Value="#765126" />
+      <Setter Property="BorderBrush" Value="{StaticResource GoldBrush}" />
+    </Style>
     <Style Selector="Button.terrain-toggle:pointerover">
       <Setter Property="Background" Value="#4A3B2B" />
       <Setter Property="BorderBrush" Value="{StaticResource GoldBrush}" />
@@ -207,14 +211,28 @@
               </StackPanel>
             </Border>
             <Button Classes="terrain-toggle"
+                    Classes.enabled="{Binding IsTerrainEnabled}"
+                    Classes.transparent="{Binding IsTerrainVisibleThroughFilter}"
                     Command="{Binding CycleTerrainModeCommand}"
                     ToolTip.Tip="{Binding TerrainToggleToolTip}">
               <Canvas Width="18" Height="16">
-                <Path Data="M 1,14 L 7,6 L 10,10 L 13,3 L 17,14 Z"
+                <Path IsVisible="{Binding IsTerrainEnabled}"
+                      Data="M 1,14 L 7,6 L 10,10 L 13,3 L 17,14 Z"
                       Fill="{StaticResource GoldBrush}" />
-                <Path Data="M 5,14 L 9,9 L 11,11 L 13,8 L 16,14 Z"
+                <Path IsVisible="{Binding IsTerrainEnabled}"
+                      Data="M 5,14 L 9,9 L 11,11 L 13,8 L 16,14 Z"
                       Fill="#241B13"
                       Opacity="0.45" />
+                <Path IsVisible="{Binding IsTerrainVisibleThroughFilter}"
+                      Data="M 1,14 L 7,6 L 10,10 L 13,3 L 17,14 Z"
+                      Fill="Transparent"
+                      Stroke="{StaticResource GoldBrush}"
+                      StrokeDashArray="1,1"
+                      StrokeLineCap="Round"
+                      StrokeThickness="1.5" />
+                <Path IsVisible="{Binding IsTerrainDisabled}"
+                      Data="M 1,14 L 7,6 L 10,10 L 13,3 L 17,14 Z"
+                      Fill="{StaticResource MutedBrush}" />
               </Canvas>
             </Button>
           </StackPanel>
@@ -248,12 +266,16 @@
                                      IsScrollInertiaEnabled="True" />
           </Grid.GestureRecognizers>
           <Canvas x:Name="MapSurface"
-                  Width="3000"
+                  Width="5000"
                   Height="620"
+                  HorizontalAlignment="Left"
+                  VerticalAlignment="Top"
                   RenderTransformOrigin="0,0">
             <views:MapTile Canvas.Left="0" />
             <views:MapTile Canvas.Left="1000" />
             <views:MapTile Canvas.Left="2000" />
+            <views:MapTile Canvas.Left="3000" />
+            <views:MapTile Canvas.Left="4000" />
           </Canvas>
 
           <Border HorizontalAlignment="Right"

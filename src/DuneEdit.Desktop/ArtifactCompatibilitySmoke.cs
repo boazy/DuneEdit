@@ -23,6 +23,27 @@ internal static class ArtifactCompatibilitySmoke
                 throw new InvalidOperationException("The desktop editor did not load every fixture location.");
             }
 
+            if (viewModel.SelectedMapFilter != MapFilter.None)
+            {
+                throw new InvalidOperationException("The editor did not default to the unfiltered map.");
+            }
+
+            viewModel.SelectAreaControlFilterCommand.Execute(null);
+            if (viewModel.Locations
+                .Where(marker => !marker.Location.Discovered)
+                .Any(marker => marker.IsVisible))
+            {
+                throw new InvalidOperationException("The control map exposed an undiscovered location.");
+            }
+
+            var discoveredDesertMarker = viewModel.Locations.FirstOrDefault(marker =>
+                marker.Location.Discovered && marker.Location.Controller == AreaController.Desert)
+                ?? throw new InvalidOperationException("The fixture did not contain a discovered desert location.");
+            if (discoveredDesertMarker.IsVisible)
+            {
+                throw new InvalidOperationException("The control map exposed a discovered desert location.");
+            }
+
             var location = viewModel.Locations[12].Location;
             var details = new LocationDetailsViewModel(location);
             var desertField = details.Advanced.Single(field => field.Label == "Desert around");

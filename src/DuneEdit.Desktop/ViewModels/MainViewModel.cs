@@ -29,7 +29,7 @@ public partial class MainViewModel(IPlatformService platform) : ViewModelBase
     public partial WriteableBitmap? MapFilterImage { get; private set; }
 
     [ObservableProperty]
-    public partial MapFilter SelectedMapFilter { get; set; } = MapFilter.AreaControl;
+    public partial MapFilter SelectedMapFilter { get; set; } = MapFilter.None;
 
     [ObservableProperty]
     private TerrainDisplayMode terrainMode = TerrainDisplayMode.Enabled;
@@ -46,9 +46,12 @@ public partial class MainViewModel(IPlatformService platform) : ViewModelBase
 
     public bool IsNoMapFilter => SelectedMapFilter == MapFilter.None;
     public bool IsTerrainVisible => TerrainMode != TerrainDisplayMode.Disabled;
+    public bool IsTerrainEnabled => TerrainMode == TerrainDisplayMode.Enabled;
+    public bool IsTerrainVisibleThroughFilter => TerrainMode == TerrainDisplayMode.VisibleThroughFilter;
+    public bool IsTerrainDisabled => TerrainMode == TerrainDisplayMode.Disabled;
     public double MapFilterOpacity => TerrainMode == TerrainDisplayMode.VisibleThroughFilter
         && SelectedMapFilter != MapFilter.None
-        ? 0.5
+        ? 0.75
         : 1;
     public string TerrainToggleToolTip => TerrainMode switch
     {
@@ -186,10 +189,16 @@ public partial class MainViewModel(IPlatformService platform) : ViewModelBase
 
         foreach (var marker in Locations)
         {
-            marker.IsVisible = SelectedMapFilter != MapFilter.Discovery || marker.Location.Discovered;
+            marker.IsVisible = SelectedMapFilter switch
+            {
+                MapFilter.AreaControl => marker.Location.Discovered
+                    && marker.Location.Controller != AreaController.Desert,
+                MapFilter.Discovery => marker.Location.Discovered,
+                _ => true,
+            };
         }
 
-        if (SelectedMapFilter == MapFilter.Discovery && selectedMarker?.Location.Discovered == false)
+        if (selectedMarker is not null && !selectedMarker.IsVisible)
         {
             SelectLocation(null);
         }
@@ -216,7 +225,10 @@ public partial class MainViewModel(IPlatformService platform) : ViewModelBase
 
     partial void OnTerrainModeChanged(TerrainDisplayMode value)
     {
+        OnPropertyChanged(nameof(IsTerrainEnabled));
+        OnPropertyChanged(nameof(IsTerrainDisabled));
         OnPropertyChanged(nameof(IsTerrainVisible));
+        OnPropertyChanged(nameof(IsTerrainVisibleThroughFilter));
         OnPropertyChanged(nameof(MapFilterOpacity));
         OnPropertyChanged(nameof(TerrainToggleToolTip));
     }

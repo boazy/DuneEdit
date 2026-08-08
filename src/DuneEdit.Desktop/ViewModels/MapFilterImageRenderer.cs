@@ -20,6 +20,12 @@ internal static class MapFilterImageRenderer
         var locationsByField = new Sietch?[byte.MaxValue + 1];
         foreach (var location in locations)
         {
+            if (filter == MapFilter.AreaControl
+                && (!location.Discovered || location.Controller == AreaController.Desert))
+            {
+                continue;
+            }
+
             locationsByField[location.SpiceFieldId] = location;
         }
 

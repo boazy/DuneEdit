@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
+using Avalonia.Threading;
 using System.Globalization;
 using Avalonia.VisualTree;
 
@@ -12,6 +13,8 @@ public partial class MainWindow : Window
 {
     private const double MapWidth = 1000;
     private const double MapHeight = 620;
+    private const int MapTileCopies = 5;
+    private const int CenterMapTile = MapTileCopies / 2;
     private const double MinimumMapZoom = 1.0;
     private const double MaximumMapZoom = 4.0;
     private const double MouseWheelZoomFactor = 1.15;
@@ -155,8 +158,11 @@ public partial class MainWindow : Window
 
     private void MapViewportSizeChanged(object? sender, SizeChangedEventArgs e)
     {
-        mapTranslation = ClampMapTranslation(mapTranslation);
-        ApplyMapTransform();
+        Dispatcher.UIThread.Post(() =>
+        {
+            mapTranslation = ClampMapTranslation(mapTranslation);
+            ApplyMapTransform();
+        }, DispatcherPriority.Render);
     }
 
     private void SetMapZoom(double requestedZoom, Point origin)
@@ -235,7 +241,7 @@ public partial class MainWindow : Window
             0,
             0,
             scale,
-            -(MapWidth * scale) + mapTranslation.X,
+            -(CenterMapTile * MapWidth * scale) + mapTranslation.X,
             VerticalPadding + mapTranslation.Y);
         MapZoomText.Text = $"{mapZoom * 100:0}%";
     }
