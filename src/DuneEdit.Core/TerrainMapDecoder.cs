@@ -14,6 +14,7 @@ public static class TerrainMapDecoder
 
     // This subpixel longitude reproduces the field boundaries obtained from MAP2.HSQ.
     private const byte PixelLongitudeFraction = 0x24;
+    private const int NorthAntimeridianGapLastRow = 28;
 
 
     public static byte[] DecodeRgba32(
@@ -39,6 +40,8 @@ public static class TerrainMapDecoder
                 projected[(row * Width) + column] = Sample(map, latitudeTable, longitude, latitude);
             }
         }
+
+        PatchNorthAntimeridianGap(projected);
 
         return projected;
     }
@@ -75,6 +78,17 @@ public static class TerrainMapDecoder
     // through ONMAP.HSQ palette entries 0x10-0x1F.
     public static byte GetPaletteIndex(byte terrainValue) =>
         (byte)(0x10 + (terrainValue & 0x0F));
+
+    private static void PatchNorthAntimeridianGap(byte[] terrain)
+    {
+        // MAP.HSQ leaves the final longitude blank on the northern cap even
+        // though its terrain continues to the antimeridian from longitude 0.
+        for (var row = 0; row <= NorthAntimeridianGapLastRow; row++)
+        {
+            var lastCell = ((row + 1) * Width) - 1;
+            terrain[lastCell] = terrain[lastCell - 1];
+        }
+    }
 
     public static byte Sample(
         ReadOnlySpan<byte> map,
