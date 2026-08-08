@@ -191,8 +191,6 @@ public partial class MainViewModel(IPlatformService platform) : ViewModelBase
         {
             marker.IsVisible = SelectedMapFilter switch
             {
-                MapFilter.AreaControl => marker.Location.Discovered
-                    && marker.Location.Controller != AreaController.Desert,
                 MapFilter.Discovery => marker.Location.Discovered,
                 _ => true,
             };

@@ -29,19 +29,29 @@ internal static class ArtifactCompatibilitySmoke
             }
 
             viewModel.SelectAreaControlFilterCommand.Execute(null);
-            if (viewModel.Locations
-                .Where(marker => !marker.Location.Discovered)
-                .Any(marker => marker.IsVisible))
-            {
-                throw new InvalidOperationException("The control map exposed an undiscovered location.");
-            }
-
             var discoveredDesertMarker = viewModel.Locations.FirstOrDefault(marker =>
                 marker.Location.Discovered && marker.Location.Controller == AreaController.Desert)
                 ?? throw new InvalidOperationException("The fixture did not contain a discovered desert location.");
-            if (discoveredDesertMarker.IsVisible)
+            if (!discoveredDesertMarker.IsVisible)
             {
-                throw new InvalidOperationException("The control map exposed a discovered desert location.");
+                throw new InvalidOperationException("The control map hid a desert location marker.");
+            }
+
+            discoveredDesertMarker.SelectCommand.Execute(null);
+            if (viewModel.SelectedLocation?.IsDesertControlled != true)
+            {
+                throw new InvalidOperationException("The editor did not select the desert location.");
+            }
+
+            var undiscoveredControlledMarker = viewModel.Locations.FirstOrDefault(marker =>
+                marker.Location.Controller != AreaController.Desert)
+                ?? throw new InvalidOperationException("The fixture did not contain a controlled location.");
+            undiscoveredControlledMarker.Location.Discovered = false;
+            viewModel.SelectNoMapFilterCommand.Execute(null);
+            viewModel.SelectAreaControlFilterCommand.Execute(null);
+            if (!undiscoveredControlledMarker.IsVisible)
+            {
+                throw new InvalidOperationException("The control map hid an undiscovered controlled location.");
             }
 
             var location = viewModel.Locations[12].Location;

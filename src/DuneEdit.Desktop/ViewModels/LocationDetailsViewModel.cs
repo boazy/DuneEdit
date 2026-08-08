@@ -39,6 +39,7 @@ public sealed class LocationDetailsViewModel : ViewModelBase
                 () =>
                 {
                     OnPropertyChanged(nameof(IsAtreidesControlled));
+                    OnPropertyChanged(nameof(IsDesertControlled));
                     mapVisualChanged?.Invoke();
                 }),
             new("Has windtrap", () => location.HasWindtrap, value => location.HasWindtrap = value),
@@ -59,7 +60,12 @@ public sealed class LocationDetailsViewModel : ViewModelBase
                 "Location type",
                 () => location.LocationType,
                 value => location.LocationType = value,
-                mapVisualChanged),
+                () =>
+                {
+                    OnPropertyChanged(nameof(IsAtreidesControlled));
+                    OnPropertyChanged(nameof(IsDesertControlled));
+                    mapVisualChanged?.Invoke();
+                }),
         ];
 
         Unknown =
@@ -85,6 +91,7 @@ public sealed class LocationDetailsViewModel : ViewModelBase
     public string Name => Location.Name;
     public string Type => Location.LocationTypeTitle.TrimEnd(':');
     public bool IsAtreidesControlled => Location.Controller == AreaController.Atreides;
+    public bool IsDesertControlled => Location.Controller == AreaController.Desert;
     public IReadOnlyList<NumericFieldViewModel> Resources { get; }
     public IReadOnlyList<BooleanFieldViewModel> Conditions { get; }
     public IReadOnlyList<NumericFieldViewModel> Advanced { get; }
