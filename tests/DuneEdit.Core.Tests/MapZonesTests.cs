@@ -14,6 +14,17 @@ public sealed class MapZonesTests
         Assert.Equal(expectedField, MapZones.GetSpiceField(mapX, mapY));
     }
 
+    [Theory]
+    [InlineData(0, 0x15)]
+    [InlineData(6, 0x18)]
+    [InlineData(20, 0x18)]
+    public void JoinsNorthCapShapesAcrossAntimeridian(int row, byte expectedField)
+    {
+        var cells = MapZones.Cells;
+        Assert.Equal(expectedField, cells[(row * MapZones.Width) + (MapZones.Width - 1)]);
+        Assert.Equal(expectedField, cells[row * MapZones.Width]);
+    }
+
     [Fact]
     public void RejectsLatitudeOutsideGameMap()
     {

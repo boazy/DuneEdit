@@ -100,6 +100,19 @@ public static class MapZones
             throw new InvalidDataException("The embedded Dune map-zone data is incomplete.");
         }
 
+        PatchNorthAntimeridianGap(cells);
         return cells;
+    }
+
+    private static void PatchNorthAntimeridianGap(byte[] cells)
+    {
+        // The reconstructed DUNEPRG projection leaves longitude 255 blank at
+        // the north cap even though the matching shape continues through
+        // longitude 0. Fill that one-cell discontinuity for toroidal rendering.
+        for (var row = 0; row <= 20; row++)
+        {
+            var lastCell = ((row + 1) * Width) - 1;
+            cells[lastCell] = cells[lastCell - 1];
+        }
     }
 }
