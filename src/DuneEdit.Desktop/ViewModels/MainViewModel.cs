@@ -39,6 +39,11 @@ public partial class MainViewModel(IPlatformService platform) : ViewModelBase
     public bool IsSpiceDensityFilter => SelectedMapFilter == MapFilter.SpiceDensity;
     public bool IsDiscoveryFilter => SelectedMapFilter == MapFilter.Discovery;
 
+    public bool IsNoMapFilter => SelectedMapFilter == MapFilter.None;
+
+    [RelayCommand]
+    private void SelectNoMapFilter() => SelectedMapFilter = MapFilter.None;
+
     [RelayCommand]
     private void SelectAreaControlFilter() => SelectedMapFilter = MapFilter.AreaControl;
 
@@ -123,6 +128,11 @@ public partial class MainViewModel(IPlatformService platform) : ViewModelBase
 
     private void SelectLocation(LocationMarkerViewModel? marker)
     {
+        if (marker is not null && ReferenceEquals(selectedMarker, marker))
+        {
+            marker = null;
+        }
+
         if (selectedMarker is not null)
         {
             selectedMarker.IsSelected = false;
@@ -139,6 +149,9 @@ public partial class MainViewModel(IPlatformService platform) : ViewModelBase
             ? document is null ? "Open a Dune save to begin." : "Select a location on the map."
             : $"Editing {marker.Name}.";
     }
+
+    [RelayCommand]
+    private void CloseSelection() => SelectLocation(null);
 
     private void RefreshMapVisuals()
     {
@@ -158,13 +171,16 @@ public partial class MainViewModel(IPlatformService platform) : ViewModelBase
         }
 
         var previousImage = MapFilterImage;
-        MapFilterImage = MapFilterImageRenderer.Render(document.Locations, SelectedMapFilter);
+        MapFilterImage = SelectedMapFilter == MapFilter.None
+            ? null
+            : MapFilterImageRenderer.Render(document.Locations, SelectedMapFilter);
         previousImage?.Dispose();
     }
 
     partial void OnSelectedMapFilterChanged(MapFilter value)
     {
         OnPropertyChanged(nameof(IsAreaControlFilter));
+        OnPropertyChanged(nameof(IsNoMapFilter));
         OnPropertyChanged(nameof(IsSpiceDensityFilter));
         OnPropertyChanged(nameof(IsDiscoveryFilter));
         RefreshMapVisuals();

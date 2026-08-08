@@ -1,16 +1,21 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Media;
+using System.Globalization;
 using Avalonia.VisualTree;
 
 namespace DuneEdit.Desktop.Views;
 
 public partial class MainWindow : Window
 {
+    private const double MapWidth = 1000;
+    private const double MapHeight = 620;
     private const double MinimumMapZoom = 1.0;
     private const double MaximumMapZoom = 4.0;
     private const double MouseWheelZoomFactor = 1.15;
+    private const double ZoomButtonStep = 0.25;
     private const double WheelPanDistance = 50.0;
 
     private readonly MatrixTransform mapTransform = new();
@@ -26,7 +31,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
 
-        MapContent.RenderTransform = mapTransform;
+        MapSurface.RenderTransform = mapTransform;
         ApplyMapTransform();
 
         MapViewport.PointerPressed += MapPointerPressed;
@@ -43,8 +48,7 @@ public partial class MainWindow : Window
 
     private void MapPointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (mapZoom <= MinimumMapZoom
-            || IsOverButton(e.Source)
+        if (IsOverButton(e.Source)
             || !e.GetCurrentPoint(MapViewport).Properties.IsLeftButtonPressed)
         {
             return;
@@ -137,9 +141,8 @@ public partial class MainWindow : Window
 
     private void MapScrolled(object? sender, ScrollGestureEventArgs e)
     {
-        if (mapZoom > MinimumMapZoom)
+        if (SetMapTranslation(mapTranslation - e.Delta))
         {
-            SetMapTranslation(mapTranslation - e.Delta);
             e.Handled = true;
         }
     }
@@ -152,7 +155,8 @@ public partial class MainWindow : Window
 
     private void MapViewportSizeChanged(object? sender, SizeChangedEventArgs e)
     {
-        SetMapTranslation(mapTranslation);
+        mapTranslation = ClampMapTranslation(mapTranslation);
+        ApplyMapTransform();
     }
 
     private void SetMapZoom(double requestedZoom, Point origin)
@@ -163,15 +167,18 @@ public partial class MainWindow : Window
             return;
         }
 
+        var fitScale = HorizontalFitScale;
+        var currentScale = fitScale * mapZoom;
         var contentPoint = new Point(
-            (origin.X - mapTranslation.X) / mapZoom,
-            (origin.Y - mapTranslation.Y) / mapZoom);
+            (origin.X + (MapWidth * currentScale) - mapTranslation.X) / currentScale,
+            (origin.Y - VerticalPadding - mapTranslation.Y) / currentScale);
 
         mapZoom = nextZoom;
+        var nextScale = fitScale * mapZoom;
         mapTranslation = ClampMapTranslation(
             new Vector(
-                origin.X - (contentPoint.X * mapZoom),
-                origin.Y - (contentPoint.Y * mapZoom)));
+                origin.X + (MapWidth * nextScale) - (contentPoint.X * nextScale),
+                origin.Y - VerticalPadding - (contentPoint.Y * nextScale)));
         ApplyMapTransform();
     }
 
@@ -188,27 +195,64 @@ public partial class MainWindow : Window
         return true;
     }
 
+    private double HorizontalFitScale => MapViewport.Bounds.Width / MapWidth;
+
+    private double VerticalPadding => Math.Max(
+        0,
+        (MapViewport.Bounds.Height - (MapHeight * HorizontalFitScale)) / 2);
+
     private Vector ClampMapTranslation(Vector translation)
     {
-        var viewport = MapViewport.Bounds.Size;
-        var minimumX = Math.Min(0, viewport.Width * (1 - mapZoom));
-        var minimumY = Math.Min(0, viewport.Height * (1 - mapZoom));
+        var tileWidth = MapWidth * HorizontalFitScale * mapZoom;
+        var minimumY = -(MapHeight * HorizontalFitScale * (mapZoom - 1));
 
         return new Vector(
-            Math.Clamp(translation.X, minimumX, 0),
+            WrapHorizontalTranslation(translation.X, tileWidth),
             Math.Clamp(translation.Y, minimumY, 0));
+    }
+
+    private static double WrapHorizontalTranslation(double translation, double tileWidth)
+    {
+        if (tileWidth <= 0)
+        {
+            return 0;
+        }
+
+        var wrapped = translation % tileWidth;
+        var halfTile = tileWidth / 2;
+        return wrapped > halfTile
+            ? wrapped - tileWidth
+            : wrapped <= -halfTile
+            ? wrapped + tileWidth
+            : wrapped;
     }
 
     private void ApplyMapTransform()
     {
+        var scale = HorizontalFitScale * mapZoom;
         mapTransform.Matrix = new Matrix(
-            mapZoom,
+            scale,
             0,
             0,
-            mapZoom,
-            mapTranslation.X,
-            mapTranslation.Y);
+            scale,
+            -(MapWidth * scale) + mapTranslation.X,
+            VerticalPadding + mapTranslation.Y);
         MapZoomText.Text = $"{mapZoom * 100:0}%";
+    }
+
+    private void ZoomOutClicked(object? sender, RoutedEventArgs e) =>
+        SetMapZoom(mapZoom - ZoomButtonStep, MapViewport.Bounds.Center);
+
+    private void ZoomInClicked(object? sender, RoutedEventArgs e) =>
+        SetMapZoom(mapZoom + ZoomButtonStep, MapViewport.Bounds.Center);
+
+    private void MapZoomPresetClicked(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: string value }
+            && double.TryParse(value, CultureInfo.InvariantCulture, out var zoom))
+        {
+            SetMapZoom(zoom, MapViewport.Bounds.Center);
+        }
     }
 
     private static bool IsOverButton(object? source)

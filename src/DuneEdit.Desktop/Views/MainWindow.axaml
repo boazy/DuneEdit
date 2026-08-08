@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:DuneEdit.Desktop.ViewModels"
+        xmlns:views="using:DuneEdit.Desktop.Views"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
@@ -46,6 +47,19 @@
     <Style Selector="Button.marker:pointerover">
       <Setter Property="Background" Value="Transparent" />
     </Style>
+    <Style Selector="Button.sidebar-close">
+      <Setter Property="Width" Value="28" />
+      <Setter Property="Height" Value="28" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="FontSize" Value="20" />
+      <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
+    </Style>
+    <Style Selector="Button.sidebar-close:pointerover">
+      <Setter Property="Background" Value="#4A3B2B" />
+      <Setter Property="Foreground" Value="{StaticResource GoldBrush}" />
+    </Style>
     <Style Selector="Image.marker-icon.selected">
       <Setter Property="Effect">
         <DropShadowEffect BlurRadius="7"
@@ -81,6 +95,25 @@
       <Setter Property="BorderBrush" Value="{StaticResource GoldBrush}" />
       <Setter Property="Foreground" Value="{StaticResource GoldBrush}" />
     </Style>
+    <Style Selector="Button.zoom-adjust">
+      <Setter Property="Width" Value="24" />
+      <Setter Property="Height" Value="24" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="FontSize" Value="17" />
+      <Setter Property="Foreground" Value="{StaticResource GoldBrush}" />
+    </Style>
+    <Style Selector="Button.zoom-adjust:pointerover, Button.zoom-display:pointerover">
+      <Setter Property="Background" Value="#4A3B2B" />
+    </Style>
+    <Style Selector="Button.zoom-display">
+      <Setter Property="MinWidth" Value="54" />
+      <Setter Property="Height" Value="24" />
+      <Setter Property="Padding" Value="5,0" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
     <Style Selector="NumericUpDown">
       <Setter Property="MinWidth" Value="92" />
       <Setter Property="HorizontalContentAlignment" Value="Right" />
@@ -110,19 +143,54 @@
                      Foreground="{StaticResource MutedBrush}" />
         </StackPanel>
 
-        <StackPanel Grid.Column="1"
-                    Margin="28,0,0,0"
-                    VerticalAlignment="Center">
-          <TextBlock Text="{Binding CurrentFileName}"
-                     FontWeight="SemiBold"
-                     Foreground="{StaticResource BodyBrush}"
-                     TextTrimming="CharacterEllipsis" />
-          <TextBlock Text="{Binding StatusText}"
-                     Margin="0,3,0,0"
-                     FontSize="12"
-                     Foreground="{StaticResource MutedBrush}"
-                     TextTrimming="CharacterEllipsis" />
-        </StackPanel>
+        <Grid Grid.Column="1"
+              Margin="28,0,0,0"
+              ColumnDefinitions="*,Auto"
+              ColumnSpacing="18">
+          <StackPanel VerticalAlignment="Center">
+            <TextBlock Text="{Binding CurrentFileName}"
+                       FontWeight="SemiBold"
+                       Foreground="{StaticResource BodyBrush}"
+                       TextTrimming="CharacterEllipsis" />
+            <TextBlock Text="{Binding StatusText}"
+                       Margin="0,3,0,0"
+                       FontSize="12"
+                       Foreground="{StaticResource MutedBrush}"
+                       TextTrimming="CharacterEllipsis" />
+          </StackPanel>
+
+          <Border Grid.Column="1"
+                  Padding="4"
+                  CornerRadius="3"
+                  Background="#E6241B13"
+                  BorderBrush="#8F6941"
+                  BorderThickness="1">
+            <StackPanel Orientation="Horizontal"
+                        Spacing="2"
+                        IsEnabled="{Binding HasDocument}">
+              <Button Classes="map-filter"
+                      Classes.selected="{Binding IsNoMapFilter}"
+                      Content="NONE"
+                      Command="{Binding SelectNoMapFilterCommand}"
+                      ToolTip.Tip="Show the unfiltered Arrakis map" />
+              <Button Classes="map-filter"
+                      Classes.selected="{Binding IsAreaControlFilter}"
+                      Content="CONTROL"
+                      Command="{Binding SelectAreaControlFilterCommand}"
+                      ToolTip.Tip="Atreides red · Harkonnen blue · uncontrolled desert" />
+              <Button Classes="map-filter"
+                      Classes.selected="{Binding IsSpiceDensityFilter}"
+                      Content="SPICE"
+                      Command="{Binding SelectSpiceDensityFilterCommand}"
+                      ToolTip.Tip="Brighter gold marks denser spice fields" />
+              <Button Classes="map-filter"
+                      Classes.selected="{Binding IsDiscoveryFilter}"
+                      Content="DISCOVERY"
+                      Command="{Binding SelectDiscoveryFilterCommand}"
+                      ToolTip.Tip="Masks undiscovered zones and locations" />
+            </StackPanel>
+          </Border>
+        </Grid>
 
         <Button Grid.Column="2"
                 Classes="action"
@@ -151,141 +219,61 @@
                                      CanVerticallyScroll="True"
                                      IsScrollInertiaEnabled="True" />
           </Grid.GestureRecognizers>
-          <Viewbox x:Name="MapContent"
-                   Stretch="Uniform"
-                   RenderTransformOrigin="0,0">
-            <Canvas Width="1000" Height="620">
-              <Rectangle Width="1000"
-                         Height="620"
-                         Fill="{StaticResource ArrakisSandFieldBrush}" />
-
-              <Path Data="M -80,118 C 95,46 244,87 391,35 C 552,-21 689,50 842,17 C 930,-2 1016,28 1080,77 L 1080,165 C 921,105 798,151 663,135 C 489,115 371,159 220,142 C 101,129 11,166 -80,222 Z"
-                    Fill="{StaticResource ErgShadowBrush}"
-                    Opacity="0.30" />
-              <Path Data="M -60,364 C 84,289 191,334 316,282 C 449,226 586,283 709,218 C 823,159 959,210 1065,164 L 1065,263 C 936,315 819,291 700,348 C 561,415 425,353 303,404 C 155,466 49,413 -60,481 Z"
-                    Fill="{StaticResource ErgShadowBrush}"
-                    Opacity="0.38" />
-              <Path Data="M -25,161 C 145,91 255,135 394,83 C 540,28 690,93 846,54 C 933,32 1008,54 1037,77"
-                    Stroke="{StaticResource DuneCrestBrush}"
-                    StrokeThickness="13"
-                    StrokeLineCap="Round"
-                    Opacity="0.70" />
-              <Path Data="M -40,432 C 96,358 199,401 318,349 C 447,293 584,347 705,286 C 824,226 932,275 1054,221"
-                    Stroke="{StaticResource DuneCrestBrush}"
-                    StrokeThickness="11"
-                    StrokeLineCap="Round"
-                    Opacity="0.66" />
-              <Path Data="M 67,560 C 174,508 278,547 373,510 C 494,463 596,515 707,474 C 832,427 903,469 1003,432"
-                    Stroke="{StaticResource ErgShadowBrush}"
-                    StrokeThickness="7"
-                    StrokeLineCap="Round"
-                    Opacity="0.28" />
-
-              <Image Canvas.Left="20"
-                     Canvas.Top="20"
-                     Width="960"
-                     Height="580"
-                     Source="{Binding MapFilterImage}"
-                     Stretch="Fill"
-                     RenderOptions.BitmapInterpolationMode="HighQuality"
-                     IsHitTestVisible="False" />
-
-
-              <ItemsControl Width="1000"
-                            Height="620"
-                            ItemsSource="{Binding Locations}">
-                <ItemsControl.ItemsPanel>
-                  <ItemsPanelTemplate>
-                    <Canvas />
-                  </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.Styles>
-                  <Style Selector="ContentPresenter">
-                    <Setter Property="Canvas.Left" Value="{ReflectionBinding Left}" />
-                    <Setter Property="Canvas.Top" Value="{ReflectionBinding Top}" />
-                    <Setter Property="Panel.ZIndex" Value="{ReflectionBinding ZIndex}" />
-                  </Style>
-                </ItemsControl.Styles>
-                <ItemsControl.ItemTemplate>
-                  <DataTemplate x:DataType="vm:LocationMarkerViewModel">
-                    <Button Classes="marker"
-                            Width="{Binding DisplayWidth}"
-                            IsVisible="{Binding IsVisible}"
-                            Height="{Binding DisplayHeight}"
-                            MinWidth="0"
-                            MinHeight="0"
-                            HorizontalContentAlignment="Stretch"
-                            VerticalContentAlignment="Stretch"
-                            Command="{Binding SelectCommand}"
-                            ToolTip.Tip="{Binding Name}">
-                      <Grid Width="{Binding DisplayWidth}"
-                            Height="{Binding DisplayHeight}">
-                        <Image Classes="marker-icon"
-                               Classes.selected="{Binding IsSelected}"
-                               Source="{Binding Image}"
-                               Width="{Binding DisplayWidth}"
-                               Height="{Binding DisplayHeight}"
-                               Stretch="Uniform" />
-                      </Grid>
-                    </Button>
-                  </DataTemplate>
-                </ItemsControl.ItemTemplate>
-              </ItemsControl>
-            </Canvas>
-          </Viewbox>
-
-          <Border
-                  HorizontalAlignment="Center"
-                  VerticalAlignment="Top"
-                  Margin="14"
-                  Padding="5"
-                  CornerRadius="3"
-                  Background="#E6241B13"
-                  BorderBrush="#8F6941"
-                  BorderThickness="1">
-            <StackPanel Orientation="Horizontal"
-                        Spacing="2"
-                        IsEnabled="{Binding HasDocument}">
-              <TextBlock Margin="9,0,8,0"
-                         VerticalAlignment="Center"
-                         Text="MAP FILTER"
-                         FontSize="9"
-                         FontWeight="Bold"
-                         LetterSpacing="1.2"
-                         Foreground="{StaticResource MutedBrush}" />
-              <Button Classes="map-filter"
-                      Classes.selected="{Binding IsAreaControlFilter}"
-                      Content="AREA CONTROL"
-                      Command="{Binding SelectAreaControlFilterCommand}"
-                      ToolTip.Tip="Atreides red · Harkonnen blue · uncontrolled desert" />
-              <Button Classes="map-filter"
-                      Classes.selected="{Binding IsSpiceDensityFilter}"
-                      Content="SPICE DENSITY"
-                      Command="{Binding SelectSpiceDensityFilterCommand}"
-                      ToolTip.Tip="Brighter gold marks denser spice fields" />
-              <Button Classes="map-filter"
-                      Classes.selected="{Binding IsDiscoveryFilter}"
-                      Content="DISCOVERED"
-                      Command="{Binding SelectDiscoveryFilterCommand}"
-                      ToolTip.Tip="Masks undiscovered zones and locations" />
-            </StackPanel>
-          </Border>
+          <Canvas x:Name="MapSurface"
+                  Width="3000"
+                  Height="620"
+                  RenderTransformOrigin="0,0">
+            <views:MapTile Canvas.Left="0" />
+            <views:MapTile Canvas.Left="1000" />
+            <views:MapTile Canvas.Left="2000" />
+          </Canvas>
 
           <Border HorizontalAlignment="Right"
                   VerticalAlignment="Bottom"
                   Margin="14"
-                  Padding="10,5"
+                  Padding="6,4"
                   CornerRadius="99"
                   Background="#D9241B13"
                   BorderBrush="#8F6941"
-                  BorderThickness="1"
-                  IsHitTestVisible="False">
-            <TextBlock x:Name="MapZoomText"
-                       Text="100%"
-                       FontSize="12"
-                       FontWeight="Bold"
-                       LetterSpacing="0.5"
-                       Foreground="{StaticResource GoldBrush}" />
+                  BorderThickness="1">
+            <StackPanel Orientation="Horizontal" Spacing="2">
+              <Button Classes="zoom-adjust"
+                      Content="−"
+                      Click="ZoomOutClicked"
+                      ToolTip.Tip="Zoom out" />
+              <Button Classes="zoom-display"
+                      ToolTip.Tip="Choose map zoom">
+                <TextBlock x:Name="MapZoomText"
+                           Text="100%"
+                           FontSize="12"
+                           FontWeight="Bold"
+                           LetterSpacing="0.5"
+                           Foreground="{StaticResource GoldBrush}" />
+                <Button.Flyout>
+                  <Flyout Placement="Top">
+                    <UniformGrid Columns="4" Margin="4">
+                      <Button Content="100%" Tag="1" Click="MapZoomPresetClicked" />
+                      <Button Content="125%" Tag="1.25" Click="MapZoomPresetClicked" />
+                      <Button Content="150%" Tag="1.5" Click="MapZoomPresetClicked" />
+                      <Button Content="175%" Tag="1.75" Click="MapZoomPresetClicked" />
+                      <Button Content="200%" Tag="2" Click="MapZoomPresetClicked" />
+                      <Button Content="225%" Tag="2.25" Click="MapZoomPresetClicked" />
+                      <Button Content="250%" Tag="2.5" Click="MapZoomPresetClicked" />
+                      <Button Content="275%" Tag="2.75" Click="MapZoomPresetClicked" />
+                      <Button Content="300%" Tag="3" Click="MapZoomPresetClicked" />
+                      <Button Content="325%" Tag="3.25" Click="MapZoomPresetClicked" />
+                      <Button Content="350%" Tag="3.5" Click="MapZoomPresetClicked" />
+                      <Button Content="375%" Tag="3.75" Click="MapZoomPresetClicked" />
+                      <Button Content="400%" Tag="4" Click="MapZoomPresetClicked" />
+                    </UniformGrid>
+                  </Flyout>
+                </Button.Flyout>
+              </Button>
+              <Button Classes="zoom-adjust"
+                      Content="+"
+                      Click="ZoomInClicked"
+                      ToolTip.Tip="Zoom in" />
+            </StackPanel>
           </Border>
 
           <Border IsVisible="{Binding HasNoDocument}"
@@ -341,17 +329,24 @@
                   Background="#332519"
                   BorderBrush="{StaticResource HairlineBrush}"
                   BorderThickness="0,0,0,1">
-            <StackPanel>
-              <TextBlock Text="{Binding SelectedLocation.Type}"
-                         Classes="section-title" />
-              <TextBlock Text="{Binding SelectedLocation.Name}"
-                         Classes="location-name"
-                         Classes.atreides="{Binding SelectedLocation.IsAtreidesControlled}"
-                         Margin="0,5,0,0"
-                         FontSize="21"
-                         FontWeight="SemiBold"
-                         TextWrapping="Wrap" />
-            </StackPanel>
+            <Grid ColumnDefinitions="*,Auto">
+              <StackPanel>
+                <TextBlock Text="{Binding SelectedLocation.Type}"
+                           Classes="section-title" />
+                <TextBlock Text="{Binding SelectedLocation.Name}"
+                           Classes="location-name"
+                           Classes.atreides="{Binding SelectedLocation.IsAtreidesControlled}"
+                           Margin="0,5,0,0"
+                           FontSize="21"
+                           FontWeight="SemiBold"
+                           TextWrapping="Wrap" />
+              </StackPanel>
+              <Button Grid.Column="1"
+                      Classes="sidebar-close"
+                      Content="×"
+                      Command="{Binding CloseSelectionCommand}"
+                      ToolTip.Tip="Close location details" />
+            </Grid>
           </Border>
 
           <ScrollViewer Grid.Row="1">

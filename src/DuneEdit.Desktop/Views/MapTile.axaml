@@ -1,0 +1,56 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:DuneEdit.Desktop.ViewModels"
+             x:Class="DuneEdit.Desktop.Views.MapTile"
+             x:DataType="vm:MainViewModel"
+             Width="1000"
+             Height="620">
+  <Canvas Width="1000" Height="620">
+    <Rectangle Width="1000"
+               Height="620"
+               Fill="#D78300" />
+    <Image Canvas.Left="0"
+           Canvas.Top="0"
+           Width="1000"
+           Height="620"
+           Source="{Binding MapFilterImage}"
+           Stretch="Fill"
+           RenderOptions.BitmapInterpolationMode="None"
+           IsHitTestVisible="False" />
+    <ItemsControl Width="1000"
+                  Height="620"
+                  ItemsSource="{Binding Locations}">
+      <ItemsControl.ItemsPanel>
+        <ItemsPanelTemplate><Canvas /></ItemsPanelTemplate>
+      </ItemsControl.ItemsPanel>
+      <ItemsControl.Styles>
+        <Style Selector="ContentPresenter">
+          <Setter Property="Canvas.Left" Value="{ReflectionBinding Left}" />
+          <Setter Property="Canvas.Top" Value="{ReflectionBinding Top}" />
+          <Setter Property="Panel.ZIndex" Value="{ReflectionBinding ZIndex}" />
+        </Style>
+      </ItemsControl.Styles>
+      <ItemsControl.ItemTemplate>
+        <DataTemplate x:DataType="vm:LocationMarkerViewModel">
+          <Button Classes="marker"
+                  Width="{Binding DisplayWidth}"
+                  Height="{Binding DisplayHeight}"
+                  IsVisible="{Binding IsVisible}"
+                  MinWidth="0"
+                  MinHeight="0"
+                  HorizontalContentAlignment="Stretch"
+                  VerticalContentAlignment="Stretch"
+                  Command="{Binding SelectCommand}"
+                  ToolTip.Tip="{Binding Name}">
+            <Image Classes="marker-icon"
+                   Classes.selected="{Binding IsSelected}"
+                   Source="{Binding Image}"
+                   Width="{Binding DisplayWidth}"
+                   Height="{Binding DisplayHeight}"
+                   Stretch="Uniform" />
+          </Button>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+  </Canvas>
+</UserControl>
