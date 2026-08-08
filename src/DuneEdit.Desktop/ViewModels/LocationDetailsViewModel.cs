@@ -4,13 +4,18 @@ namespace DuneEdit.Desktop.ViewModels;
 
 public sealed class LocationDetailsViewModel : ViewModelBase
 {
-    public LocationDetailsViewModel(Sietch location)
+    public LocationDetailsViewModel(Sietch location, Action? mapVisualChanged = null)
     {
         Location = location;
 
         Resources =
         [
-            new("Spice density", () => location.Spice, value => location.Spice = value),
+            new("Spice", () => location.Spice, value => location.Spice = value),
+            new(
+                "Spice density",
+                () => location.SpiceDensity,
+                value => location.SpiceDensity = value,
+                mapVisualChanged),
             new("Harvesters", () => location.Harvesters, value => location.Harvesters = value),
             new("Ornis", () => location.Ornis, value => location.Ornis = value),
             new("Krys", () => location.Krys, value => location.Krys = value),
@@ -31,10 +36,18 @@ public sealed class LocationDetailsViewModel : ViewModelBase
                 "Inventory visible",
                 () => location.InventoryVisible,
                 value => location.InventoryVisible = value,
-                () => OnPropertyChanged(nameof(IsAtreidesControlled))),
+                () =>
+                {
+                    OnPropertyChanged(nameof(IsAtreidesControlled));
+                    mapVisualChanged?.Invoke();
+                }),
             new("Has windtrap", () => location.HasWindtrap, value => location.HasWindtrap = value),
             new("Prospected", () => location.Prospected, value => location.Prospected = value),
-            new("Discovered", () => location.Discovered, value => location.Discovered = value),
+            new(
+                "Discovered",
+                () => location.Discovered,
+                value => location.Discovered = value,
+                mapVisualChanged),
         ];
 
         Advanced =
@@ -42,21 +55,28 @@ public sealed class LocationDetailsViewModel : ViewModelBase
             new("Map X position", () => location.MapPosX, value => location.MapPosX = value),
             new("Map Y position", () => location.MapPosY, value => location.MapPosY = value),
             new("Desert around", () => location.DesertAroundSietch, value => location.DesertAroundSietch = value),
-            new("Location type", () => location.LocationType, value => location.LocationType = value),
+            new(
+                "Location type",
+                () => location.LocationType,
+                value => location.LocationType = value,
+                mapVisualChanged),
         ];
 
         Unknown =
         [
             new("Position X", () => location.PosX, value => location.PosX = value),
             new("Position Y", () => location.PosY, value => location.PosY = value),
-            new("Spice field", () => location.SpiceFieldId, value => location.SpiceFieldId = value),
+            new(
+                "Spice field",
+                () => location.SpiceFieldId,
+                value => location.SpiceFieldId = value,
+                mapVisualChanged),
             new("Unknown 05", () => location.Unk05, value => location.Unk05 = value),
             new("Unknown 0B", () => location.Unk0B, value => location.Unk0B = value),
             new("Unknown 0C", () => location.Unk0C, value => location.Unk0C = value),
             new("Unknown 0D", () => location.Unk0D, value => location.Unk0D = value),
             new("Unknown 0E", () => location.Unk0E, value => location.Unk0E = value),
             new("Unknown 0F", () => location.Unk0F, value => location.Unk0F = value),
-            new("Unknown 11", () => location.Unk11, value => location.Unk11 = value),
             new("Unknown 13", () => location.Unk13, value => location.Unk13 = value),
         ];
     }
@@ -64,7 +84,7 @@ public sealed class LocationDetailsViewModel : ViewModelBase
     public Sietch Location { get; }
     public string Name => Location.Name;
     public string Type => Location.LocationTypeTitle.TrimEnd(':');
-    public bool IsAtreidesControlled => Location.InventoryVisible;
+    public bool IsAtreidesControlled => Location.Controller == AreaController.Atreides;
     public IReadOnlyList<NumericFieldViewModel> Resources { get; }
     public IReadOnlyList<BooleanFieldViewModel> Conditions { get; }
     public IReadOnlyList<NumericFieldViewModel> Advanced { get; }

@@ -3,7 +3,8 @@ namespace DuneEdit.Desktop.ViewModels;
 public sealed class NumericFieldViewModel(
     string label,
     Func<byte> read,
-    Action<byte> write) : ViewModelBase
+    Action<byte> write,
+    Action? onChanged = null) : ViewModelBase
 {
     public string Label { get; } = label;
 
@@ -20,6 +21,7 @@ public sealed class NumericFieldViewModel(
 
             write(normalized);
             OnPropertyChanged();
+            onChanged?.Invoke();
         }
     }
 }

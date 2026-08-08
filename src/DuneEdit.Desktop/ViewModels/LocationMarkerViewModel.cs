@@ -14,6 +14,9 @@ public sealed class LocationMarkerViewModel : ViewModelBase
 
     private static readonly ConcurrentDictionary<string, Bitmap> Images = new(StringComparer.Ordinal);
     private bool isSelected;
+    private bool isVisible = true;
+    private readonly double centerX;
+    private readonly double centerY;
 
     public LocationMarkerViewModel(Sietch location, Action<LocationMarkerViewModel> select)
     {
@@ -22,12 +25,12 @@ public sealed class LocationMarkerViewModel : ViewModelBase
         var imageScale = location.LocationTypeGroup == "Sietch" ? 0.35 : 0.27;
         Width = Image.PixelSize.Width * imageScale;
         Height = Image.PixelSize.Height * imageScale;
-        Left = ConvertCoordinate(location.MapPosX, MapWidth, byte.MaxValue) - (Width / 2);
+        centerX = ConvertCoordinate(location.MapPosX, MapWidth, byte.MaxValue);
 
         byte adjustedY = location.MapPosY > 180
             ? (byte)(location.MapPosY - 180)
             : (byte)(location.MapPosY + 75);
-        Top = ConvertCoordinate(adjustedY, MapHeight, 150) - (Height / 2);
+        centerY = ConvertCoordinate(adjustedY, MapHeight, 150);
         SelectCommand = new RelayCommand(() => select(this));
     }
 
@@ -36,10 +39,19 @@ public sealed class LocationMarkerViewModel : ViewModelBase
     public Bitmap Image { get; }
     public double Width { get; }
     public double Height { get; }
-    public double Left { get; }
-    public double Top { get; }
+    public double DisplayWidth => Width * SelectionScale;
+    public double DisplayHeight => Height * SelectionScale;
+    public double Left => centerX - (DisplayWidth / 2);
+    public double Top => centerY - (DisplayHeight / 2);
+    public int ZIndex => IsSelected ? 1 : 0;
     public IRelayCommand SelectCommand { get; }
-    public double SelectionScale => IsSelected ? 1.28 : 1.0;
+    public double SelectionScale => IsSelected ? 1.60 : 1.0;
+
+    public bool IsVisible
+    {
+        get => isVisible;
+        set => SetProperty(ref isVisible, value);
+    }
 
     public bool IsSelected
     {
@@ -52,6 +64,11 @@ public sealed class LocationMarkerViewModel : ViewModelBase
             }
 
             OnPropertyChanged(nameof(SelectionScale));
+            OnPropertyChanged(nameof(DisplayWidth));
+            OnPropertyChanged(nameof(DisplayHeight));
+            OnPropertyChanged(nameof(Left));
+            OnPropertyChanged(nameof(Top));
+            OnPropertyChanged(nameof(ZIndex));
         }
     }
 

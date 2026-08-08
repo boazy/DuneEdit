@@ -1,5 +1,13 @@
 namespace DuneEdit.Core;
 
+public enum AreaController
+{
+    Desert,
+    Atreides,
+    Harkonnen,
+}
+
+
 public sealed class Sietch
 {
     public const int RecordSize = 0x1C;
@@ -33,8 +41,8 @@ public sealed class Sietch
     public byte Unk0E { get => data[0x0E]; set => data[0x0E] = value; }
     public byte Unk0F { get => data[0x0F]; set => data[0x0F] = value; }
     public byte SpiceFieldId { get => data[0x10]; set => data[0x10] = value; }
-    public byte Unk11 { get => data[0x11]; set => data[0x11] = value; }
-    public byte Spice { get => data[0x12]; set => data[0x12] = value; }
+    public byte Spice { get => data[0x11]; set => data[0x11] = value; }
+    public byte SpiceDensity { get => data[0x12]; set => data[0x12] = value; }
     public byte Unk13 { get => data[0x13]; set => data[0x13] = value; }
     public byte Harvesters { get => data[0x14]; set => data[0x14] = value; }
     public byte Ornis { get => data[0x15]; set => data[0x15] = value; }
@@ -65,6 +73,12 @@ public sealed class Sietch
         "Arrakeen" => "Arrakeen Palace",
         var title => $"{title}:",
     };
+
+    public AreaController Controller => InventoryVisible
+        ? AreaController.Atreides
+        : LocationType is >= 0x28 and <= 0x30
+            ? AreaController.Harkonnen
+            : AreaController.Desert;
 
     public bool Vegetation { get => GetStatus(0); set => SetStatus(0, value); }
     public bool UnderAttack { get => GetStatus(1); set => SetStatus(1, value); }

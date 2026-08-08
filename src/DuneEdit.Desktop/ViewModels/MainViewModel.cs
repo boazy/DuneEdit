@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using DuneEdit.Core;
@@ -23,11 +24,30 @@ public partial class MainViewModel(IPlatformService platform) : ViewModelBase
     [ObservableProperty]
     public partial LocationDetailsViewModel? SelectedLocation { get; private set; }
 
+
+    [ObservableProperty]
+    public partial WriteableBitmap? MapFilterImage { get; private set; }
+
+    [ObservableProperty]
+    public partial MapFilter SelectedMapFilter { get; set; } = MapFilter.AreaControl;
     public ObservableCollection<LocationMarkerViewModel> Locations { get; } = [];
     public bool HasDocument => document is not null;
     public bool HasNoDocument => document is null;
     public bool HasSelection => SelectedLocation is not null;
     public bool HasNoSelection => SelectedLocation is null;
+    public bool IsAreaControlFilter => SelectedMapFilter == MapFilter.AreaControl;
+    public bool IsSpiceDensityFilter => SelectedMapFilter == MapFilter.SpiceDensity;
+    public bool IsDiscoveryFilter => SelectedMapFilter == MapFilter.Discovery;
+
+    [RelayCommand]
+    private void SelectAreaControlFilter() => SelectedMapFilter = MapFilter.AreaControl;
+
+    [RelayCommand]
+    private void SelectSpiceDensityFilter() => SelectedMapFilter = MapFilter.SpiceDensity;
+
+    [RelayCommand]
+    private void SelectDiscoveryFilter() => SelectedMapFilter = MapFilter.Discovery;
+
 
     [RelayCommand(CanExecute = nameof(CanOpen))]
     private async Task OpenAsync()
@@ -55,6 +75,7 @@ public partial class MainViewModel(IPlatformService platform) : ViewModelBase
             }
 
             SelectLocation(null);
+            RefreshMapVisuals();
             StatusText = $"Loaded {loaded.Locations.Count} locations from {CurrentFileName}.";
             OnPropertyChanged(nameof(HasDocument));
             OnPropertyChanged(nameof(HasNoDocument));
@@ -113,10 +134,40 @@ public partial class MainViewModel(IPlatformService platform) : ViewModelBase
             selectedMarker.IsSelected = true;
         }
 
-        SelectedLocation = marker is null ? null : new LocationDetailsViewModel(marker.Location);
+        SelectedLocation = marker is null ? null : new LocationDetailsViewModel(marker.Location, RefreshMapVisuals);
         StatusText = marker is null
             ? document is null ? "Open a Dune save to begin." : "Select a location on the map."
             : $"Editing {marker.Name}.";
+    }
+
+    private void RefreshMapVisuals()
+    {
+        if (document is null)
+        {
+            return;
+        }
+
+        foreach (var marker in Locations)
+        {
+            marker.IsVisible = SelectedMapFilter != MapFilter.Discovery || marker.Location.Discovered;
+        }
+
+        if (SelectedMapFilter == MapFilter.Discovery && selectedMarker?.Location.Discovered == false)
+        {
+            SelectLocation(null);
+        }
+
+        var previousImage = MapFilterImage;
+        MapFilterImage = MapFilterImageRenderer.Render(document.Locations, SelectedMapFilter);
+        previousImage?.Dispose();
+    }
+
+    partial void OnSelectedMapFilterChanged(MapFilter value)
+    {
+        OnPropertyChanged(nameof(IsAreaControlFilter));
+        OnPropertyChanged(nameof(IsSpiceDensityFilter));
+        OnPropertyChanged(nameof(IsDiscoveryFilter));
+        RefreshMapVisuals();
     }
 
     partial void OnSelectedLocationChanged(LocationDetailsViewModel? value)

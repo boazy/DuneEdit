@@ -63,6 +63,37 @@ public sealed class DuneSavegameTests
     }
 
     [Fact]
+    public void SpiceFieldsMapToDistinctBytes()
+    {
+        var savegame = DuneSavegame.Parse(CreateCompressedDocument(), SavegameFormat.CompressedSave);
+        var location = savegame.Locations[0];
+
+        location.Spice = 0x42;
+        location.SpiceDensity = 0x99;
+
+        Assert.Equal(0x42, location.ToArray()[0x11]);
+        Assert.Equal(0x99, location.ToArray()[0x12]);
+    }
+
+    [Fact]
+    public void AreaControllerFollowsGameOwnershipFlags()
+    {
+        var savegame = DuneSavegame.Parse(CreateCompressedDocument(), SavegameFormat.CompressedSave);
+        var location = savegame.Locations[0];
+
+        location.LocationType = 0x30;
+        location.InventoryVisible = false;
+        Assert.Equal(AreaController.Harkonnen, location.Controller);
+
+        location.InventoryVisible = true;
+        Assert.Equal(AreaController.Atreides, location.Controller);
+
+        location.InventoryVisible = false;
+        location.LocationType = 0x21;
+        Assert.Equal(AreaController.Desert, location.Controller);
+    }
+
+    [Fact]
     public void SerializedSaveCanBeParsedAgain()
     {
         var original = DuneSavegame.Parse(CreateCompressedDocument(), SavegameFormat.CompressedSave);

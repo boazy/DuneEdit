@@ -46,22 +46,40 @@
     <Style Selector="Button.marker:pointerover">
       <Setter Property="Background" Value="Transparent" />
     </Style>
-    <Style Selector="Border.marker-frame">
-      <Setter Property="CornerRadius" Value="3" />
-      <Setter Property="Background" Value="Transparent" />
-      <Setter Property="BorderThickness" Value="0" />
-      <Setter Property="BorderBrush" Value="Transparent" />
-    </Style>
-    <Style Selector="Border.marker-frame.selected">
-      <Setter Property="BorderThickness" Value="2" />
-      <Setter Property="BorderBrush" Value="{StaticResource GoldBrush}" />
-      <Setter Property="BoxShadow" Value="0 3 10 2 #9A451A08" />
+    <Style Selector="Image.marker-icon.selected">
+      <Setter Property="Effect">
+        <DropShadowEffect BlurRadius="7"
+                          OffsetX="1"
+                          OffsetY="3"
+                          Color="#351A0A"
+                          Opacity="0.55" />
+      </Setter>
     </Style>
     <Style Selector="TextBlock.location-name">
       <Setter Property="Foreground" Value="{StaticResource WaterBrush}" />
     </Style>
     <Style Selector="TextBlock.location-name.atreides">
       <Setter Property="Foreground" Value="{StaticResource AtreidesBrush}" />
+    </Style>
+    <Style Selector="Button.map-filter">
+      <Setter Property="MinHeight" Value="30" />
+      <Setter Property="Padding" Value="12,6" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0,0,0,2" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="CornerRadius" Value="2" />
+      <Setter Property="FontSize" Value="11" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
+    </Style>
+    <Style Selector="Button.map-filter:pointerover">
+      <Setter Property="Background" Value="#4A3B2B" />
+      <Setter Property="Foreground" Value="{StaticResource BodyBrush}" />
+    </Style>
+    <Style Selector="Button.map-filter.selected">
+      <Setter Property="Background" Value="#765126" />
+      <Setter Property="BorderBrush" Value="{StaticResource GoldBrush}" />
+      <Setter Property="Foreground" Value="{StaticResource GoldBrush}" />
     </Style>
     <Style Selector="NumericUpDown">
       <Setter Property="MinWidth" Value="92" />
@@ -163,14 +181,15 @@
                     StrokeLineCap="Round"
                     Opacity="0.28" />
 
-              <TextBlock Canvas.Left="22"
-                         Canvas.Top="18"
-                         Text="ARRAKIS LOCATION PLOT"
-                         FontSize="11"
-                         FontWeight="Bold"
-                         LetterSpacing="1.7"
-                         Foreground="{StaticResource MapLabelBrush}"
-                         Opacity="0.72" />
+              <Image Canvas.Left="20"
+                     Canvas.Top="20"
+                     Width="960"
+                     Height="580"
+                     Source="{Binding MapFilterImage}"
+                     Stretch="Fill"
+                     RenderOptions.BitmapInterpolationMode="HighQuality"
+                     IsHitTestVisible="False" />
+
 
               <ItemsControl Width="1000"
                             Height="620"
@@ -184,33 +203,29 @@
                   <Style Selector="ContentPresenter">
                     <Setter Property="Canvas.Left" Value="{ReflectionBinding Left}" />
                     <Setter Property="Canvas.Top" Value="{ReflectionBinding Top}" />
+                    <Setter Property="Panel.ZIndex" Value="{ReflectionBinding ZIndex}" />
                   </Style>
                 </ItemsControl.Styles>
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="vm:LocationMarkerViewModel">
                     <Button Classes="marker"
-                            Width="{Binding Width}"
-                            Height="{Binding Height}"
+                            Width="{Binding DisplayWidth}"
+                            IsVisible="{Binding IsVisible}"
+                            Height="{Binding DisplayHeight}"
                             MinWidth="0"
                             MinHeight="0"
                             HorizontalContentAlignment="Stretch"
                             VerticalContentAlignment="Stretch"
                             Command="{Binding SelectCommand}"
                             ToolTip.Tip="{Binding Name}">
-                      <Grid Width="{Binding Width}"
-                            Height="{Binding Height}"
-                            RenderTransformOrigin="0.5,0.5">
-                        <Grid.RenderTransform>
-                          <ScaleTransform ScaleX="{Binding SelectionScale}"
-                                          ScaleY="{Binding SelectionScale}" />
-                        </Grid.RenderTransform>
-                        <Image Source="{Binding Image}"
-                               Width="{Binding Width}"
-                               Height="{Binding Height}"
+                      <Grid Width="{Binding DisplayWidth}"
+                            Height="{Binding DisplayHeight}">
+                        <Image Classes="marker-icon"
+                               Classes.selected="{Binding IsSelected}"
+                               Source="{Binding Image}"
+                               Width="{Binding DisplayWidth}"
+                               Height="{Binding DisplayHeight}"
                                Stretch="Uniform" />
-                        <Border Classes="marker-frame"
-                                Classes.selected="{Binding IsSelected}"
-                                IsHitTestVisible="False" />
                       </Grid>
                     </Button>
                   </DataTemplate>
@@ -218,6 +233,43 @@
               </ItemsControl>
             </Canvas>
           </Viewbox>
+
+          <Border
+                  HorizontalAlignment="Center"
+                  VerticalAlignment="Top"
+                  Margin="14"
+                  Padding="5"
+                  CornerRadius="3"
+                  Background="#E6241B13"
+                  BorderBrush="#8F6941"
+                  BorderThickness="1">
+            <StackPanel Orientation="Horizontal"
+                        Spacing="2"
+                        IsEnabled="{Binding HasDocument}">
+              <TextBlock Margin="9,0,8,0"
+                         VerticalAlignment="Center"
+                         Text="MAP FILTER"
+                         FontSize="9"
+                         FontWeight="Bold"
+                         LetterSpacing="1.2"
+                         Foreground="{StaticResource MutedBrush}" />
+              <Button Classes="map-filter"
+                      Classes.selected="{Binding IsAreaControlFilter}"
+                      Content="AREA CONTROL"
+                      Command="{Binding SelectAreaControlFilterCommand}"
+                      ToolTip.Tip="Atreides red · Harkonnen blue · uncontrolled desert" />
+              <Button Classes="map-filter"
+                      Classes.selected="{Binding IsSpiceDensityFilter}"
+                      Content="SPICE DENSITY"
+                      Command="{Binding SelectSpiceDensityFilterCommand}"
+                      ToolTip.Tip="Brighter gold marks denser spice fields" />
+              <Button Classes="map-filter"
+                      Classes.selected="{Binding IsDiscoveryFilter}"
+                      Content="DISCOVERED"
+                      Command="{Binding SelectDiscoveryFilterCommand}"
+                      ToolTip.Tip="Masks undiscovered zones and locations" />
+            </StackPanel>
+          </Border>
 
           <Border HorizontalAlignment="Right"
                   VerticalAlignment="Bottom"
