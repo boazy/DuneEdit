@@ -95,6 +95,20 @@
       <Setter Property="BorderBrush" Value="{StaticResource GoldBrush}" />
       <Setter Property="Foreground" Value="{StaticResource GoldBrush}" />
     </Style>
+    <Style Selector="Button.terrain-toggle">
+      <Setter Property="Width" Value="32" />
+      <Setter Property="Height" Value="32" />
+      <Setter Property="Padding" Value="6" />
+      <Setter Property="Background" Value="#E6241B13" />
+      <Setter Property="BorderBrush" Value="#8F6941" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="3" />
+      <Setter Property="Foreground" Value="{StaticResource GoldBrush}" />
+    </Style>
+    <Style Selector="Button.terrain-toggle:pointerover">
+      <Setter Property="Background" Value="#4A3B2B" />
+      <Setter Property="BorderBrush" Value="{StaticResource GoldBrush}" />
+    </Style>
     <Style Selector="Button.zoom-adjust">
       <Setter Property="Width" Value="24" />
       <Setter Property="Height" Value="24" />
@@ -159,37 +173,51 @@
                        TextTrimming="CharacterEllipsis" />
           </StackPanel>
 
-          <Border Grid.Column="1"
-                  Padding="4"
-                  CornerRadius="3"
-                  Background="#E6241B13"
-                  BorderBrush="#8F6941"
-                  BorderThickness="1">
-            <StackPanel Orientation="Horizontal"
-                        Spacing="2"
-                        IsEnabled="{Binding HasDocument}">
-              <Button Classes="map-filter"
-                      Classes.selected="{Binding IsNoMapFilter}"
-                      Content="NONE"
-                      Command="{Binding SelectNoMapFilterCommand}"
-                      ToolTip.Tip="Show the unfiltered Arrakis map" />
-              <Button Classes="map-filter"
-                      Classes.selected="{Binding IsAreaControlFilter}"
-                      Content="CONTROL"
-                      Command="{Binding SelectAreaControlFilterCommand}"
-                      ToolTip.Tip="Atreides red · Harkonnen blue · uncontrolled desert" />
-              <Button Classes="map-filter"
-                      Classes.selected="{Binding IsSpiceDensityFilter}"
-                      Content="SPICE"
-                      Command="{Binding SelectSpiceDensityFilterCommand}"
-                      ToolTip.Tip="Brighter gold marks denser spice fields" />
-              <Button Classes="map-filter"
-                      Classes.selected="{Binding IsDiscoveryFilter}"
-                      Content="DISCOVERY"
-                      Command="{Binding SelectDiscoveryFilterCommand}"
-                      ToolTip.Tip="Masks undiscovered zones and locations" />
-            </StackPanel>
-          </Border>
+          <StackPanel Grid.Column="1"
+                      Orientation="Horizontal"
+                      Spacing="6">
+            <Border Padding="4"
+                    CornerRadius="3"
+                    Background="#E6241B13"
+                    BorderBrush="#8F6941"
+                    BorderThickness="1">
+              <StackPanel Orientation="Horizontal"
+                          Spacing="2"
+                          IsEnabled="{Binding HasDocument}">
+                <Button Classes="map-filter"
+                        Classes.selected="{Binding IsNoMapFilter}"
+                        Content="NONE"
+                        Command="{Binding SelectNoMapFilterCommand}"
+                        ToolTip.Tip="Show the unfiltered Arrakis map" />
+                <Button Classes="map-filter"
+                        Classes.selected="{Binding IsAreaControlFilter}"
+                        Content="CONTROL"
+                        Command="{Binding SelectAreaControlFilterCommand}"
+                        ToolTip.Tip="Atreides red · Harkonnen blue · uncontrolled desert" />
+                <Button Classes="map-filter"
+                        Classes.selected="{Binding IsSpiceDensityFilter}"
+                        Content="SPICE"
+                        Command="{Binding SelectSpiceDensityFilterCommand}"
+                        ToolTip.Tip="Brighter gold marks denser spice fields" />
+                <Button Classes="map-filter"
+                        Classes.selected="{Binding IsDiscoveryFilter}"
+                        Content="DISCOVERY"
+                        Command="{Binding SelectDiscoveryFilterCommand}"
+                        ToolTip.Tip="Masks undiscovered zones and locations" />
+              </StackPanel>
+            </Border>
+            <Button Classes="terrain-toggle"
+                    Command="{Binding CycleTerrainModeCommand}"
+                    ToolTip.Tip="{Binding TerrainToggleToolTip}">
+              <Canvas Width="18" Height="16">
+                <Path Data="M 1,14 L 7,6 L 10,10 L 13,3 L 17,14 Z"
+                      Fill="{StaticResource GoldBrush}" />
+                <Path Data="M 5,14 L 9,9 L 11,11 L 13,8 L 16,14 Z"
+                      Fill="#241B13"
+                      Opacity="0.45" />
+              </Canvas>
+            </Button>
+          </StackPanel>
         </Grid>
 
         <Button Grid.Column="2"

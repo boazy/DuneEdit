@@ -9,6 +9,16 @@
     <Rectangle Width="1000"
                Height="620"
                Fill="#D78300" />
+    <!-- MAP.HSQ terrain projected from its variable-width rows with TABLAT.BIN. -->
+    <Image Canvas.Left="0"
+           Canvas.Top="0"
+           Width="1000"
+           Height="620"
+           Source="/Assets/ArrakisTerrain.png"
+           Stretch="Fill"
+           RenderOptions.BitmapInterpolationMode="None"
+           IsVisible="{Binding IsTerrainVisible}"
+           IsHitTestVisible="False" />
     <Image Canvas.Left="0"
            Canvas.Top="0"
            Width="1000"
@@ -16,6 +26,7 @@
            Source="{Binding MapFilterImage}"
            Stretch="Fill"
            RenderOptions.BitmapInterpolationMode="None"
+           Opacity="{Binding MapFilterOpacity}"
            IsHitTestVisible="False" />
     <ItemsControl Width="1000"
                   Height="620"

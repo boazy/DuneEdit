@@ -30,6 +30,11 @@ public partial class MainViewModel(IPlatformService platform) : ViewModelBase
 
     [ObservableProperty]
     public partial MapFilter SelectedMapFilter { get; set; } = MapFilter.AreaControl;
+
+    [ObservableProperty]
+    private TerrainDisplayMode terrainMode = TerrainDisplayMode.Enabled;
+
+
     public ObservableCollection<LocationMarkerViewModel> Locations { get; } = [];
     public bool HasDocument => document is not null;
     public bool HasNoDocument => document is null;
@@ -40,6 +45,25 @@ public partial class MainViewModel(IPlatformService platform) : ViewModelBase
     public bool IsDiscoveryFilter => SelectedMapFilter == MapFilter.Discovery;
 
     public bool IsNoMapFilter => SelectedMapFilter == MapFilter.None;
+    public bool IsTerrainVisible => TerrainMode != TerrainDisplayMode.Disabled;
+    public double MapFilterOpacity => TerrainMode == TerrainDisplayMode.VisibleThroughFilter
+        && SelectedMapFilter != MapFilter.None
+        ? 0.5
+        : 1;
+    public string TerrainToggleToolTip => TerrainMode switch
+    {
+        TerrainDisplayMode.Enabled => "Terrain shown. Click to show it through map filters.",
+        TerrainDisplayMode.VisibleThroughFilter => "Terrain shows through map filters. Click to hide it.",
+        _ => "Terrain hidden. Click to show the original game terrain.",
+    };
+
+    [RelayCommand]
+    private void CycleTerrainMode() => TerrainMode = TerrainMode switch
+    {
+        TerrainDisplayMode.Enabled => TerrainDisplayMode.VisibleThroughFilter,
+        TerrainDisplayMode.VisibleThroughFilter => TerrainDisplayMode.Disabled,
+        _ => TerrainDisplayMode.Enabled,
+    };
 
     [RelayCommand]
     private void SelectNoMapFilter() => SelectedMapFilter = MapFilter.None;
@@ -184,8 +208,18 @@ public partial class MainViewModel(IPlatformService platform) : ViewModelBase
         OnPropertyChanged(nameof(IsSpiceDensityFilter));
         OnPropertyChanged(nameof(IsDiscoveryFilter));
         RefreshMapVisuals();
+
+
+        OnPropertyChanged(nameof(MapFilterOpacity));
     }
 
+
+    partial void OnTerrainModeChanged(TerrainDisplayMode value)
+    {
+        OnPropertyChanged(nameof(IsTerrainVisible));
+        OnPropertyChanged(nameof(MapFilterOpacity));
+        OnPropertyChanged(nameof(TerrainToggleToolTip));
+    }
     partial void OnSelectedLocationChanged(LocationDetailsViewModel? value)
     {
         OnPropertyChanged(nameof(HasSelection));
