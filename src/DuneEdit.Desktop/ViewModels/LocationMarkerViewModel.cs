@@ -11,6 +11,7 @@ public sealed class LocationMarkerViewModel : ViewModelBase
     private const double MapWidth = 1000;
     private const double MapHeight = 620;
     private const double MapMargin = 20;
+    private const double SpriteUpscaleFactor = 4;
 
     private static readonly ConcurrentDictionary<string, Bitmap> Images = new(StringComparer.Ordinal);
     private bool isSelected;
@@ -22,7 +23,7 @@ public sealed class LocationMarkerViewModel : ViewModelBase
     {
         Location = location;
         Image = Images.GetOrAdd(location.LocationTypeGroup, LoadImage);
-        var imageScale = location.LocationTypeGroup == "Sietch" ? 0.35 : 0.27;
+        var imageScale = (location.LocationTypeGroup == "Sietch" ? 0.35 : 0.27) / SpriteUpscaleFactor;
         Width = Image.PixelSize.Width * imageScale;
         Height = Image.PixelSize.Height * imageScale;
         centerX = ConvertCoordinate(location.MapPosX, MapWidth, byte.MaxValue);
@@ -80,7 +81,7 @@ public sealed class LocationMarkerViewModel : ViewModelBase
 
     private static Bitmap LoadImage(string locationType)
     {
-        var uri = new Uri($"avares://DuneEdit.Desktop/Assets/Locations/{locationType}.png");
+        var uri = new Uri($"avares://DuneEdit.Desktop/Assets/Locations/{locationType}.4xbrz.png");
         using var stream = AssetLoader.Open(uri);
         return new Bitmap(stream);
     }

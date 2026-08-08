@@ -13,7 +13,7 @@
         Height="760"
         MinWidth="860"
         MinHeight="560"
-        Icon="/Assets/Locations/Sietch.png"
+        Icon="/Assets/Locations/Sietch.4xbrz.png"
         Title="Dune Editor">
   <Window.KeyBindings>
     <KeyBinding Gesture="Ctrl+O" Command="{Binding OpenCommand}" />
