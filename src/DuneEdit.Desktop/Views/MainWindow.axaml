@@ -21,6 +21,7 @@
   </Window.KeyBindings>
 
   <Window.Resources>
+    <vm:TroopOccupationDisplayConverter x:Key="TroopOccupationDisplayConverter" />
     <LinearGradientBrush x:Key="ArrakisSandFieldBrush" StartPoint="0,0" EndPoint="1,1">
       <GradientStop Offset="0" Color="#FFE681" />
       <GradientStop Offset="0.48" Color="#F1C452" />
@@ -67,6 +68,15 @@
                           OffsetY="3"
                           Color="#351A0A"
                           Opacity="0.55" />
+      </Setter>
+    </Style>
+    <Style Selector="Image.troop-icon.selected">
+      <Setter Property="Effect">
+        <DropShadowEffect BlurRadius="5"
+                          OffsetX="0"
+                          OffsetY="2"
+                          Color="#FFF0AA"
+                          Opacity="0.8" />
       </Setter>
     </Style>
     <Style Selector="TextBlock.location-name">
@@ -238,6 +248,22 @@
                       Fill="{StaticResource MutedBrush}" />
               </Canvas>
             </Button>
+            <Button Classes="terrain-toggle"
+                    Classes.enabled="{Binding IsTroopDisplayEnabled}"
+                    Command="{Binding ToggleTroopDisplayCommand}"
+                    ToolTip.Tip="{Binding TroopDisplayToolTip}">
+              <Canvas Width="18" Height="16">
+                <Image Source="/Assets/FremenFilled.4xbrz.png"
+                       Width="15"
+                       Height="15"
+                       Stretch="Uniform"
+                       RenderOptions.BitmapInterpolationMode="None" />
+                <Path IsVisible="{Binding !IsTroopDisplayEnabled}"
+                      Data="M 2,2 L 16,14"
+                      Stroke="{StaticResource MutedBrush}"
+                      StrokeThickness="2" />
+              </Canvas>
+            </Button>
           </StackPanel>
         </Grid>
 
@@ -384,12 +410,12 @@
                   BorderThickness="0,0,0,1">
             <Grid ColumnDefinitions="*,Auto">
               <StackPanel>
-                <TextBlock Text="{Binding SelectedLocation.Type}"
+                <TextBlock Text="{Binding SelectedType}"
                            Classes="section-title" />
-                <TextBlock Text="{Binding SelectedLocation.Name}"
+                <TextBlock Text="{Binding SelectedName}"
                            Classes="location-name"
-                           Classes.atreides="{Binding SelectedLocation.IsAtreidesControlled}"
-                           Classes.desert="{Binding SelectedLocation.IsDesertControlled}"
+                           Classes.atreides="{Binding IsSelectionAtreides}"
+                           Classes.desert="{Binding IsSelectionDesert}"
                            Margin="0,5,0,0"
                            FontSize="21"
                            FontWeight="SemiBold"
@@ -404,7 +430,9 @@
           </Border>
 
           <ScrollViewer Grid.Row="1">
-            <StackPanel Margin="24,20,24,30">
+            <StackPanel>
+            <StackPanel Margin="24,20,24,30"
+                        IsVisible="{Binding HasLocationSelection}">
               <TextBlock Text="RESOURCES" Classes="section-title" />
               <ItemsControl ItemsSource="{Binding SelectedLocation.Resources}">
                 <ItemsControl.ItemTemplate>
@@ -479,6 +507,108 @@
                   </ItemsControl.ItemTemplate>
                 </ItemsControl>
               </Expander>
+            </StackPanel>
+            <StackPanel Margin="24,20,24,30"
+                        IsVisible="{Binding HasFremenTroopSelection}">
+              <TextBlock Text="OCCUPATION" Classes="section-title" />
+              <TextBlock IsVisible="{Binding SelectedFremenTroop.HasCurrentGameState}"
+                         Text="{Binding SelectedFremenTroop.CurrentGameState}"
+                         Margin="0,5,0,0"
+                         FontSize="12"
+                         TextWrapping="Wrap"
+                         Foreground="{StaticResource MutedBrush}" />
+              <ComboBox Margin="0,7,0,0"
+                        ItemsSource="{Binding SelectedFremenTroop.AvailableOccupations}"
+                        SelectedItem="{Binding SelectedFremenTroop.SelectedOccupation, Mode=TwoWay}">
+                <ComboBox.ItemTemplate>
+                  <DataTemplate>
+                    <TextBlock Text="{Binding Converter={StaticResource TroopOccupationDisplayConverter}}" />
+                  </DataTemplate>
+                </ComboBox.ItemTemplate>
+              </ComboBox>
+              <Grid ColumnDefinitions="*,Auto" Margin="0,8,0,0">
+                <TextBlock Text="Job"
+                           VerticalAlignment="Center"
+                           Foreground="{StaticResource BodyBrush}" />
+                <ComboBox Grid.Column="1"
+                          MinWidth="170"
+                          IsEnabled="{Binding SelectedFremenTroop.IsJobEnabled}"
+                          ItemsSource="{Binding SelectedFremenTroop.AvailableJobs}"
+                          SelectedItem="{Binding SelectedFremenTroop.SelectedJob, Mode=TwoWay}">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate>
+                      <TextBlock Text="{Binding Converter={StaticResource TroopOccupationDisplayConverter}}" />
+                    </DataTemplate>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
+              </Grid>
+              <Grid ColumnDefinitions="*,Auto" Margin="0,5,0,0">
+                <TextBlock Text="Allegiance"
+                           VerticalAlignment="Center"
+                           Foreground="{StaticResource BodyBrush}" />
+                <ComboBox Grid.Column="1"
+                          MinWidth="170"
+                          IsEnabled="{Binding SelectedFremenTroop.IsAllegianceEnabled}"
+                          ItemsSource="{Binding SelectedFremenTroop.AvailableAllegiances}"
+                          SelectedItem="{Binding SelectedFremenTroop.SelectedAllegiance, Mode=TwoWay}">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate>
+                      <TextBlock Text="{Binding Converter={StaticResource TroopOccupationDisplayConverter}}" />
+                    </DataTemplate>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
+              </Grid>
+              <CheckBox Margin="0,8,0,0"
+                        IsEnabled="{Binding SelectedFremenTroop.IsJobCompletedEnabled}"
+                        Content="Job completed"
+                        IsChecked="{Binding SelectedFremenTroop.JobCompleted, Mode=TwoWay}"
+                        Foreground="{StaticResource BodyBrush}" />
+
+              <Border Height="1" Margin="0,18" Background="{StaticResource HairlineBrush}" />
+              <TextBlock Text="ABILITY" Classes="section-title" />
+              <ItemsControl ItemsSource="{Binding SelectedFremenTroop.Attributes}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:NumericFieldViewModel">
+                    <Grid ColumnDefinitions="*,Auto" Margin="0,5,0,0">
+                      <TextBlock Text="{Binding Label}"
+                                 VerticalAlignment="Center"
+                                 Foreground="{StaticResource BodyBrush}" />
+                      <NumericUpDown Grid.Column="1"
+                                     Minimum="0"
+                                     Maximum="255"
+                                     Increment="1"
+                                     FormatString="0"
+                                     Value="{Binding Value, Mode=TwoWay}" />
+                    </Grid>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <Grid ColumnDefinitions="*,Auto" Margin="0,5,0,0">
+                <TextBlock Text="{Binding SelectedFremenTroop.People.Label}"
+                           VerticalAlignment="Center"
+                           Foreground="{StaticResource BodyBrush}" />
+                <NumericUpDown Grid.Column="1"
+                               Minimum="0"
+                               Maximum="{Binding SelectedFremenTroop.People.Maximum}"
+                               Increment="{Binding SelectedFremenTroop.People.Increment}"
+                               FormatString="0"
+                               Value="{Binding SelectedFremenTroop.People.Value, Mode=TwoWay}" />
+              </Grid>
+
+              <Border Height="1" Margin="0,18" Background="{StaticResource HairlineBrush}" />
+              <TextBlock Text="EQUIPMENT" Classes="section-title" />
+              <ItemsControl Margin="0,5,0,0"
+                            ItemsSource="{Binding SelectedFremenTroop.Equipment}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:BooleanFieldViewModel">
+                    <CheckBox Margin="0,4"
+                              Content="{Binding Label}"
+                              IsChecked="{Binding Value, Mode=TwoWay}"
+                              Foreground="{StaticResource BodyBrush}" />
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
             </StackPanel>
           </ScrollViewer>
         </Grid>

@@ -8,8 +8,11 @@ public enum SavegameFormat
 
 public sealed class DuneSavegame
 {
+    private const int FremenTroopSlots = 68;
     private readonly byte[] decompressedData;
+    private readonly int fremenTroopsOffset;
     private readonly int locationsOffset;
+    private readonly Dictionary<byte, Sietch> locationsByFremenTroopId;
     private readonly Dictionary<(byte Region, byte Subregion), Sietch> locationsById;
 
     private DuneSavegame(
@@ -36,10 +39,43 @@ public sealed class DuneSavegame
         }
 
         Locations = locations.AsReadOnly();
+
+        fremenTroopsOffset = locationsOffset + (locations.Count * Sietch.RecordSize) + 2;
+        var fremenTroops = new List<FremenTroop>(FremenTroopSlots - 1);
+        if (fremenTroopsOffset + (FremenTroopSlots * FremenTroop.RecordSize) <= decompressedData.Length)
+        {
+            for (var index = 0; index < FremenTroopSlots; index++)
+            {
+                var troop = new FremenTroop(
+                    decompressedData.AsSpan(fremenTroopsOffset + (index * FremenTroop.RecordSize), FremenTroop.RecordSize));
+                if (troop.Id == 0)
+                {
+                    break;
+                }
+
+                fremenTroops.Add(troop);
+            }
+        }
+
+        var troopsById = fremenTroops.ToDictionary(troop => troop.Id);
+        locationsByFremenTroopId = new Dictionary<byte, Sietch>(troopsById.Count);
+        foreach (var location in locations)
+        {
+            var troopId = location.PrimaryTroopId;
+            var visited = new HashSet<byte>();
+            while (troopId != 0 && visited.Add(troopId) && troopsById.TryGetValue(troopId, out var troop))
+            {
+                locationsByFremenTroopId.TryAdd(troop.Id, location);
+                troopId = troop.NextTroopId;
+            }
+        }
+
+        FremenTroops = fremenTroops.AsReadOnly();
     }
 
     public SavegameFormat Format { get; }
     public string? SourcePath { get; private set; }
+    public IReadOnlyList<FremenTroop> FremenTroops { get; }
     public IReadOnlyList<Sietch> Locations { get; }
 
     public static DuneSavegame Load(string filePath)
@@ -88,10 +124,16 @@ public sealed class DuneSavegame
         return locationsById.GetValueOrDefault((region, subregion));
     }
 
+    public Sietch? FindFremenTroopLocation(byte troopId)
+    {
+        return locationsByFremenTroopId.GetValueOrDefault(troopId);
+    }
+
     public byte[] ToDecompressedBytes()
     {
         var output = (byte[])decompressedData.Clone();
         CopyLocationsTo(output);
+        CopyFremenTroopsTo(output);
         return output;
     }
 
@@ -173,6 +215,15 @@ public sealed class DuneSavegame
         {
             var offset = locationsOffset + (index * Sietch.RecordSize);
             Locations[index].CopyTo(destination.Slice(offset, Sietch.RecordSize));
+        }
+    }
+
+    private void CopyFremenTroopsTo(Span<byte> destination)
+    {
+        for (var index = 0; index < FremenTroops.Count; index++)
+        {
+            var offset = fremenTroopsOffset + (index * FremenTroop.RecordSize);
+            FremenTroops[index].CopyTo(destination.Slice(offset, FremenTroop.RecordSize));
         }
     }
 }

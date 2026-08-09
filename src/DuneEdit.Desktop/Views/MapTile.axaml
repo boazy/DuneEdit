@@ -63,5 +63,41 @@
         </DataTemplate>
       </ItemsControl.ItemTemplate>
     </ItemsControl>
+    <ItemsControl Width="1000"
+                  Height="620"
+                  ItemsSource="{Binding FremenTroops}">
+      <ItemsControl.ItemsPanel>
+        <ItemsPanelTemplate><Canvas /></ItemsPanelTemplate>
+      </ItemsControl.ItemsPanel>
+      <ItemsControl.Styles>
+        <Style Selector="ContentPresenter">
+          <Setter Property="Canvas.Left" Value="{ReflectionBinding Left}" />
+          <Setter Property="Canvas.Top" Value="{ReflectionBinding Top}" />
+          <Setter Property="Panel.ZIndex" Value="{ReflectionBinding ZIndex}" />
+        </Style>
+      </ItemsControl.Styles>
+      <ItemsControl.ItemTemplate>
+        <DataTemplate x:DataType="vm:FremenTroopMarkerViewModel">
+          <Button Classes="marker troop-marker"
+                  Width="{Binding Width}"
+                  Height="{Binding Height}"
+                  IsVisible="{Binding IsVisible}"
+                  MinWidth="0"
+                  MinHeight="0"
+                  HorizontalContentAlignment="Stretch"
+                  VerticalContentAlignment="Stretch"
+                  Command="{Binding SelectCommand}"
+                  ToolTip.Tip="{Binding Name}">
+            <Image Classes="troop-icon"
+                   Classes.selected="{Binding IsSelected}"
+                   Source="{Binding Image}"
+                   Width="{Binding Width}"
+                   Height="{Binding Height}"
+                   Stretch="Uniform"
+                   RenderOptions.BitmapInterpolationMode="None" />
+          </Button>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
   </Canvas>
 </UserControl>

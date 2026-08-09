@@ -1,3 +1,5 @@
+using DuneEdit.Desktop.ViewModels;
+using DuneEdit.Desktop.Services;
 using DuneEdit.Core;
 
 namespace DuneEdit.Core.Tests;
@@ -121,6 +123,132 @@ public sealed class DuneSavegameTests
     }
 
     [Fact]
+    public void ParsesAndPersistsStructuredFremenTroopOccupation()
+    {
+        var savegame = DuneSavegame.Parse(
+            SavegameCompression.Compress(CreateDocumentWithFremenTroops()),
+            SavegameFormat.CompressedSave);
+        var troop = Assert.Single(savegame.FremenTroops, troop => troop.Id == 1);
+
+        troop.Occupation = 28;
+        Assert.Equal(TroopOccupation.Spice, troop.OccupationInfo.Occupation);
+        Assert.Equal(TroopJob.Mining, troop.OccupationInfo.Job);
+        Assert.True(troop.OccupationInfo.JobCompleted);
+        Assert.Equal(TroopAllegiance.Harkonnen, troop.OccupationInfo.Allegiance);
+
+        troop.ApplyOccupationInfo(TroopOccupationInfo.CreateEdited(
+            TroopOccupation.Spice,
+            TroopJob.SearchingForEquipment,
+            true,
+            TroopAllegiance.Harkonnen));
+        troop.Motivation = 100;
+        troop.ArmyRank = 99;
+        troop.People = 340;
+        troop.HasWeirdingModules = true;
+
+        var reparsed = DuneSavegame.Parse(savegame.ToFileBytes(), SavegameFormat.CompressedSave);
+        var persisted = Assert.Single(reparsed.FremenTroops, troop => troop.Id == 1);
+        Assert.Equal(31, persisted.Occupation);
+        Assert.Equal(TroopOccupation.Spice, persisted.OccupationInfo.Occupation);
+        Assert.Equal(TroopJob.SearchingForEquipment, persisted.OccupationInfo.Job);
+        Assert.True(persisted.OccupationInfo.JobCompleted);
+        Assert.Equal(TroopAllegiance.Harkonnen, persisted.OccupationInfo.Allegiance);
+        Assert.Equal(100, persisted.Motivation);
+        Assert.Equal(99, persisted.ArmyRank);
+        Assert.Equal(340, persisted.People);
+        Assert.True(persisted.HasWeirdingModules);
+    }
+
+    [Fact]
+    public void EveryRawJobCodeRoundTripsThroughOccupationInfo()
+    {
+        var savegame = DuneSavegame.Parse(
+            SavegameCompression.Compress(CreateDocumentWithFremenTroops()),
+            SavegameFormat.CompressedSave);
+        var troop = Assert.Single(savegame.FremenTroops, troop => troop.Id == 1);
+
+        for (var rawJobCode = byte.MinValue; rawJobCode < byte.MaxValue; rawJobCode++)
+        {
+            var info = TroopOccupationInfo.FromRawJobCode(rawJobCode);
+            Assert.Equal(rawJobCode, info.RawJobCode);
+            troop.ApplyOccupationInfo(info);
+            Assert.Equal(rawJobCode, troop.Occupation);
+        }
+
+        var finalInfo = TroopOccupationInfo.FromRawJobCode(byte.MaxValue);
+        troop.ApplyOccupationInfo(finalInfo);
+        Assert.Equal(byte.MaxValue, troop.Occupation);
+    }
+
+    [Fact]
+    public void PreservesUnknownRawJobUntilAConcreteOccupationIsSelected()
+    {
+        var savegame = DuneSavegame.Parse(
+            SavegameCompression.Compress(CreateDocumentWithFremenTroops()),
+            SavegameFormat.CompressedSave);
+        var troop = Assert.Single(savegame.FremenTroops, troop => troop.Id == 2);
+
+        troop.Occupation = 33;
+        var rawState = troop.OccupationInfo;
+        Assert.True(rawState.IsUnknown);
+        Assert.Equal(33, rawState.RawJobCode);
+        troop.ApplyOccupationInfo(rawState);
+        Assert.Equal(33, troop.Occupation);
+
+        var details = new FremenTroopDetailsViewModel(troop, savegame.Locations[0]);
+        Assert.Contains(TroopOccupation.Unknown, details.AvailableOccupations);
+        Assert.False(details.IsJobEnabled);
+        Assert.False(details.IsJobCompletedEnabled);
+
+        details.SelectedOccupation = TroopOccupation.Spice;
+        Assert.Equal(0, troop.Occupation);
+        Assert.Equal(TroopJob.Mining, troop.OccupationInfo.Job);
+        Assert.Equal(TroopAllegiance.Atreides, troop.OccupationInfo.Allegiance);
+    }
+
+    [Fact]
+    public void StructuredEditorEncodesJobCompletionAndRestrictsInapplicableControls()
+    {
+        var savegame = DuneSavegame.Parse(
+            SavegameCompression.Compress(CreateDocumentWithFremenTroops()),
+            SavegameFormat.CompressedSave);
+        var troop = Assert.Single(savegame.FremenTroops, troop => troop.Id == 1);
+
+        troop.Occupation = 0;
+        var details = new FremenTroopDetailsViewModel(troop, savegame.Locations[0]);
+        Assert.True(details.IsJobEnabled);
+        Assert.True(details.IsAllegianceEnabled);
+        Assert.True(details.IsJobCompletedEnabled);
+
+        details.JobCompleted = true;
+        Assert.Equal(16, troop.Occupation);
+        details.SelectedJob = TroopJob.SearchingForEquipment;
+        Assert.Equal(19, troop.Occupation);
+        details.SelectedAllegiance = TroopAllegiance.Harkonnen;
+        Assert.Equal(28, troop.Occupation);
+        details.SelectedJob = TroopJob.SearchingForEquipment;
+        Assert.Equal(31, troop.Occupation);
+
+        troop.Occupation = 129;
+        var unrecruitedDetails = new FremenTroopDetailsViewModel(troop, savegame.Locations[0]);
+        Assert.Equal(TroopOccupation.Unrecruited, unrecruitedDetails.SelectedOccupation);
+        Assert.False(unrecruitedDetails.IsJobEnabled);
+        Assert.False(unrecruitedDetails.IsAllegianceEnabled);
+        Assert.False(unrecruitedDetails.IsJobCompletedEnabled);
+    }
+
+    [Fact]
+    public void TroopVisibilityCommandUpdatesStateAndTooltip()
+    {
+        var editor = new MainViewModel(new NoopPlatformService());
+
+        editor.ToggleTroopDisplayCommand.Execute(null);
+
+        Assert.False(editor.IsTroopDisplayEnabled);
+        Assert.Equal("Fremen troops hidden. Click to show them.", editor.TroopDisplayToolTip);
+    }
+
+    [Fact]
     public void RejectsFileWithoutCompleteLocationBlock()
     {
         byte[] invalid = [0, 0, 0, 0, 4, 0];
@@ -166,5 +294,36 @@ public sealed class DuneSavegameTests
         }
 
         return data;
+    }
+
+    private static byte[] CreateDocumentWithFremenTroops()
+    {
+        var data = CreateDecompressedDocument(LocSequences.compressed);
+        var firstTroopOffset = data.Length - 1;
+        Array.Resize(ref data, firstTroopOffset + (FremenTroop.RecordSize * 68));
+        data[LocationBlockOffset + 0x09] = 1;
+
+        data[firstTroopOffset] = 1;
+        data[firstTroopOffset + 1] = 2;
+        data[firstTroopOffset + 2] = 1;
+        data[firstTroopOffset + 3] = 128;
+        data[firstTroopOffset + 0x15] = 80;
+        data[firstTroopOffset + 0x16] = 20;
+        data[firstTroopOffset + 0x17] = 30;
+        data[firstTroopOffset + 0x18] = 40;
+        data[firstTroopOffset + 0x19] = 1 << 4;
+        data[firstTroopOffset + 0x1A] = 25;
+
+        var secondTroopOffset = firstTroopOffset + FremenTroop.RecordSize;
+        data[secondTroopOffset] = 2;
+        data[secondTroopOffset + 3] = 129;
+        return data;
+    }
+
+    private sealed class NoopPlatformService : IPlatformService
+    {
+        public Task<string?> OpenDuneFileAsync() => Task.FromResult<string?>(null);
+
+        public Task ShowErrorAsync(string title, string message) => Task.CompletedTask;
     }
 }

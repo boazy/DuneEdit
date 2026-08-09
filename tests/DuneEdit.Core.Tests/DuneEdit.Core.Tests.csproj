@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\DuneEdit.Core\DuneEdit.Core.csproj" />
+    <ProjectReference Include="..\..\src\DuneEdit.Desktop\DuneEdit.Desktop.csproj" />
   </ItemGroup>
 
 </Project>
