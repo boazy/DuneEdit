@@ -145,8 +145,14 @@ jobs:
           mount_point="$RUNNER_TEMP/duneedit-dmg"
           mkdir -p "$mount_point"
           hdiutil attach -quiet -nobrowse -readonly -mountpoint "$mount_point" "$dmg"
+          detach_dmg() {
+            if ! hdiutil detach -quiet "$mount_point"; then
+              sleep 2
+              hdiutil detach -quiet -force "$mount_point"
+            fi
+          }
           cleanup() {
-            hdiutil detach -quiet "$mount_point" || true
+            detach_dmg || true
           }
           trap cleanup EXIT
 
@@ -165,7 +171,7 @@ jobs:
             "$mount_point/DuneEdit.app/Contents/MacOS/DuneEdit.Desktop" \
             --artifact-compatibility-smoke
 
-          hdiutil detach -quiet "$mount_point"
+          detach_dmg
           trap - EXIT
           rm -rf "artifacts/${{ matrix.rid }}/desktop"
       - name: Exercise self-contained desktop artifact (Linux/Xvfb)
