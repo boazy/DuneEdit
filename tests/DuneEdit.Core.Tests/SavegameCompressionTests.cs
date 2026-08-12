@@ -28,6 +28,25 @@ public sealed class SavegameCompressionTests
     }
 
     [Fact]
+    public void DecompressesConsecutiveVariableWidthInstructions()
+    {
+        byte[] compressed =
+        [
+            0x02, 0x00, 0xF7, 0x02, 0x0C, 0x00,
+            0x11,
+            0xF7, 0x02, 0x22,
+            0xF7, 0x00, 0x33,
+            0x44,
+        ];
+
+        var result = SavegameCompression.Decompress(compressed);
+
+        Assert.Equal<byte>(
+            [0x02, 0x00, 0xF7, 0x02, 0x0C, 0x00, 0x11, 0x22, 0x22, 0x44],
+            result);
+    }
+
+    [Fact]
     public void RejectsTruncatedMarkerSequence()
     {
         byte[] compressed = [0x00, 0x00, 0x00, 0x00, 0x05, 0x00, 0xF7];

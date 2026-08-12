@@ -12,13 +12,13 @@ public sealed class DuneSavegame
     private readonly byte[] decompressedData;
     private readonly int fremenTroopsOffset;
     private readonly int locationsOffset;
-    private readonly Dictionary<byte, Sietch> locationsByFremenTroopId;
-    private readonly Dictionary<(byte Region, byte Subregion), Sietch> locationsById;
+    private readonly Dictionary<TroopId, DuneLocation> locationsByFremenTroopId;
+    private readonly Dictionary<LocationId, DuneLocation> locationsById;
 
     private DuneSavegame(
         byte[] decompressedData,
         SavegameFormat format,
-        Loc[] locationSequences,
+        int locationCount,
         int locationsOffset,
         string? sourcePath)
     {
@@ -27,56 +27,20 @@ public sealed class DuneSavegame
         Format = format;
         SourcePath = sourcePath;
 
-        var locations = new List<Sietch>(locationSequences.Length - 1);
-        locationsById = new Dictionary<(byte Region, byte Subregion), Sietch>(locationSequences.Length - 1);
+        var locations = ParseLocations(decompressedData, locationsOffset, locationCount);
+        Locations = Array.AsReadOnly(locations);
+        locationsById = locations.ToDictionary(location => location.Id);
 
-        for (var index = 0; index < locationSequences.Length - 1; index++)
-        {
-            var offset = locationsOffset + (index * Sietch.RecordSize);
-            var location = new Sietch(decompressedData.AsSpan(offset, Sietch.RecordSize));
-            locations.Add(location);
-            locationsById.Add((location.RegionId, location.SubregionId), location);
-        }
-
-        Locations = locations.AsReadOnly();
-
-        fremenTroopsOffset = locationsOffset + (locations.Count * Sietch.RecordSize) + 2;
-        var fremenTroops = new List<FremenTroop>(FremenTroopSlots - 1);
-        if (fremenTroopsOffset + (FremenTroopSlots * FremenTroop.RecordSize) <= decompressedData.Length)
-        {
-            for (var index = 0; index < FremenTroopSlots; index++)
-            {
-                var troop = new FremenTroop(
-                    decompressedData.AsSpan(fremenTroopsOffset + (index * FremenTroop.RecordSize), FremenTroop.RecordSize));
-                if (troop.Id == 0)
-                {
-                    break;
-                }
-
-                fremenTroops.Add(troop);
-            }
-        }
-
-        var troopsById = fremenTroops.ToDictionary(troop => troop.Id);
-        locationsByFremenTroopId = new Dictionary<byte, Sietch>(troopsById.Count);
-        foreach (var location in locations)
-        {
-            var troopId = location.PrimaryTroopId;
-            var visited = new HashSet<byte>();
-            while (troopId != 0 && visited.Add(troopId) && troopsById.TryGetValue(troopId, out var troop))
-            {
-                locationsByFremenTroopId.TryAdd(troop.Id, location);
-                troopId = troop.NextTroopId;
-            }
-        }
-
-        FremenTroops = fremenTroops.AsReadOnly();
+        fremenTroopsOffset = locationsOffset + (locations.Length * DuneLocation.RecordSize) + 2;
+        var fremenTroops = ParseFremenTroops(decompressedData, fremenTroopsOffset);
+        FremenTroops = Array.AsReadOnly(fremenTroops);
+        locationsByFremenTroopId = IndexTroopLocations(locations, fremenTroops);
     }
 
     public SavegameFormat Format { get; }
     public string? SourcePath { get; private set; }
     public IReadOnlyList<FremenTroop> FremenTroops { get; }
-    public IReadOnlyList<Sietch> Locations { get; }
+    public IReadOnlyList<DuneLocation> Locations { get; }
 
     public static DuneSavegame Load(string filePath)
     {
@@ -94,40 +58,21 @@ public sealed class DuneSavegame
         SavegameFormat format,
         string? sourcePath = null)
     {
-        byte[] decompressed;
-        Loc[] sequences;
-
-        if (format == SavegameFormat.CompressedSave)
-        {
-            var declaredLength = SavegameCompression.ReadDeclaredFileLength(fileData);
-            if (declaredLength != fileData.Length)
-            {
-                throw new InvalidDataException(
-                    $"The save header declares {declaredLength} bytes, but the file contains {fileData.Length} bytes.");
-            }
-
-            decompressed = SavegameCompression.Decompress(fileData);
-            sequences = LocSequences.compressed;
-        }
-        else
-        {
-            decompressed = fileData.ToArray();
-            sequences = LocSequences.uncompressed;
-        }
-
-        var offset = FindLocationsOffset(decompressed, sequences);
-        return new DuneSavegame(decompressed, format, sequences, offset, sourcePath);
+        var signatures = format == SavegameFormat.CompressedSave
+            ? LocationSignatures.CompressedSave
+            : LocationSignatures.Executable;
+        var decompressed = format == SavegameFormat.CompressedSave
+            ? DecompressSave(fileData)
+            : fileData.ToArray();
+        var offset = FindLocationsOffset(decompressed, signatures);
+        return new DuneSavegame(decompressed, format, signatures.Length - 1, offset, sourcePath);
     }
 
-    public Sietch? FindLocation(byte region, byte subregion)
-    {
-        return locationsById.GetValueOrDefault((region, subregion));
-    }
+    public DuneLocation? FindLocation(LocationId id) =>
+        locationsById.GetValueOrDefault(id);
 
-    public Sietch? FindFremenTroopLocation(byte troopId)
-    {
-        return locationsByFremenTroopId.GetValueOrDefault(troopId);
-    }
+    public DuneLocation? FindFremenTroopLocation(TroopId troopId) =>
+        locationsByFremenTroopId.GetValueOrDefault(troopId);
 
     public byte[] ToDecompressedBytes()
     {
@@ -170,9 +115,66 @@ public sealed class DuneSavegame
         }
     }
 
-    private static int FindLocationsOffset(ReadOnlySpan<byte> data, IReadOnlyList<Loc> sequences)
+    private static byte[] DecompressSave(ReadOnlySpan<byte> fileData)
     {
-        var blockSize = ((sequences.Count - 1) * Sietch.RecordSize) + 3;
+        var declaredLength = SavegameCompression.ReadDeclaredFileLength(fileData);
+        if (declaredLength != fileData.Length)
+        {
+            throw new InvalidDataException(
+                $"The save header declares {declaredLength} bytes, but the file contains {fileData.Length} bytes.");
+        }
+
+        return SavegameCompression.Decompress(fileData);
+    }
+
+    private static DuneLocation[] ParseLocations(byte[] data, int offset, int count) =>
+        Enumerable.Range(0, count)
+            .Select(index => new DuneLocation(
+                data.AsSpan(offset + (index * DuneLocation.RecordSize), DuneLocation.RecordSize)))
+            .ToArray();
+
+    private static FremenTroop[] ParseFremenTroops(byte[] data, int offset)
+    {
+        if (offset + (FremenTroopSlots * FremenTroop.RecordSize) > data.Length)
+        {
+            return [];
+        }
+
+        return Enumerable.Range(0, FremenTroopSlots)
+            .TakeWhile(index => data[offset + (index * FremenTroop.RecordSize)] != 0)
+            .Select(index => new FremenTroop(
+                data.AsSpan(offset + (index * FremenTroop.RecordSize), FremenTroop.RecordSize)))
+            .ToArray();
+    }
+
+    private static Dictionary<TroopId, DuneLocation> IndexTroopLocations(
+        IReadOnlyList<DuneLocation> locations,
+        IReadOnlyList<FremenTroop> troops)
+    {
+        var troopsById = troops.ToDictionary(troop => troop.Id);
+        var index = new Dictionary<TroopId, DuneLocation>(troopsById.Count);
+
+        foreach (var location in locations)
+        {
+            var troopId = location.PrimaryTroopId;
+            var visited = new HashSet<TroopId>();
+            while (troopId is { } id
+                && visited.Add(id)
+                && troopsById.TryGetValue(id, out var troop))
+            {
+                index.TryAdd(troop.Id, location);
+                troopId = troop.NextTroopId;
+            }
+        }
+
+        return index;
+    }
+
+    private static int FindLocationsOffset(
+        ReadOnlySpan<byte> data,
+        ReadOnlySpan<LocationSignature> signatures)
+    {
+        var blockSize = ((signatures.Length - 1) * DuneLocation.RecordSize) + 3;
         if (data.Length < blockSize)
         {
             throw new InvalidDataException("The file is too short to contain Dune's location block.");
@@ -181,26 +183,7 @@ public sealed class DuneSavegame
         var lastStart = data.Length - blockSize;
         for (var candidate = 0; candidate <= lastStart; candidate++)
         {
-            var allMatch = true;
-            for (var sequenceIndex = 0; sequenceIndex < sequences.Count - 1; sequenceIndex++)
-            {
-                var sequence = sequences[sequenceIndex];
-                var offset = candidate + (sequenceIndex * Sietch.RecordSize);
-                if (data[offset] != sequence.v1 || data[offset + 1] != sequence.v2)
-                {
-                    allMatch = false;
-                    break;
-                }
-            }
-
-            var terminator = sequences[^1];
-            var terminatorOffset = candidate + ((sequences.Count - 1) * Sietch.RecordSize);
-            allMatch = allMatch
-                && data[terminatorOffset] == terminator.v1
-                && data[terminatorOffset + 1] == terminator.v2
-                && data[terminatorOffset + 2] == terminator.v3;
-
-            if (allMatch)
+            if (LocationBlockMatches(data, signatures, candidate))
             {
                 return candidate;
             }
@@ -209,12 +192,34 @@ public sealed class DuneSavegame
         throw new InvalidDataException("The Dune location block could not be found in this file.");
     }
 
+    private static bool LocationBlockMatches(
+        ReadOnlySpan<byte> data,
+        ReadOnlySpan<LocationSignature> signatures,
+        int candidate)
+    {
+        for (var index = 0; index < signatures.Length - 1; index++)
+        {
+            var signature = signatures[index];
+            var offset = candidate + (index * DuneLocation.RecordSize);
+            if (data[offset] != signature.RegionId || data[offset + 1] != signature.SubregionId)
+            {
+                return false;
+            }
+        }
+
+        var terminator = signatures[^1];
+        var terminatorOffset = candidate + ((signatures.Length - 1) * DuneLocation.RecordSize);
+        return data[terminatorOffset] == terminator.RegionId
+            && data[terminatorOffset + 1] == terminator.SubregionId
+            && data[terminatorOffset + 2] == terminator.Terminator;
+    }
+
     private void CopyLocationsTo(Span<byte> destination)
     {
         for (var index = 0; index < Locations.Count; index++)
         {
-            var offset = locationsOffset + (index * Sietch.RecordSize);
-            Locations[index].CopyTo(destination.Slice(offset, Sietch.RecordSize));
+            var offset = locationsOffset + (index * DuneLocation.RecordSize);
+            Locations[index].CopyTo(destination.Slice(offset, DuneLocation.RecordSize));
         }
     }
 

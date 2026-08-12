@@ -12,12 +12,14 @@ public static class SavegameCompression
         using var output = new MemoryStream(data.Length);
         output.Write(data[..HeaderLength]);
 
-        for (var index = HeaderLength; index < data.Length; index++)
+        var index = HeaderLength;
+        while (index < data.Length)
         {
             var value = data[index];
             if (value != Marker)
             {
                 output.WriteByte(value);
+                index++;
                 continue;
             }
 
@@ -33,7 +35,7 @@ public static class SavegameCompression
                 output.WriteByte(repeatedValue);
             }
 
-            index += 2;
+            index += 3;
         }
 
         return output.ToArray();

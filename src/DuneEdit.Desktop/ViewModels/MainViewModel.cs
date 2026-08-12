@@ -10,8 +10,7 @@ namespace DuneEdit.Desktop.ViewModels;
 public partial class MainViewModel(IPlatformService platform) : ViewModelBase
 {
     private DuneSavegame? document;
-    private LocationMarkerViewModel? selectedMarker;
-    private FremenTroopMarkerViewModel? selectedFremenTroopMarker;
+    private IEditorSelection? activeSelection;
 
     [ObservableProperty]
     public partial string CurrentFileName { get; private set; } = "No file open";
@@ -23,37 +22,33 @@ public partial class MainViewModel(IPlatformService platform) : ViewModelBase
     public partial bool IsBusy { get; private set; }
 
     [ObservableProperty]
-    public partial LocationDetailsViewModel? SelectedLocation { get; private set; }
-
-    [ObservableProperty]
-    public partial FremenTroopDetailsViewModel? SelectedFremenTroop { get; private set; }
-
-
-    [ObservableProperty]
     public partial WriteableBitmap? MapFilterImage { get; private set; }
 
     [ObservableProperty]
     public partial MapFilter SelectedMapFilter { get; set; } = MapFilter.None;
 
     [ObservableProperty]
-    private TerrainDisplayMode terrainMode = TerrainDisplayMode.Enabled;
+    public partial TerrainDisplayMode TerrainMode { get; set; } = TerrainDisplayMode.Enabled;
 
     [ObservableProperty]
-    private bool isTroopDisplayEnabled = true;
+    public partial bool IsTroopDisplayEnabled { get; set; } = true;
 
-
-    public ObservableCollection<LocationMarkerViewModel> Locations { get; } = [];
-    public ObservableCollection<FremenTroopMarkerViewModel> FremenTroops { get; } = [];
+    public ObservableCollection<LocationMarkerViewModel> LocationMarkers { get; } = [];
+    public ObservableCollection<FremenTroopMarkerViewModel> FremenTroopMarkers { get; } = [];
+    public LocationDetailsViewModel? SelectedLocation =>
+        (activeSelection as LocationSelection)?.Details;
+    public FremenTroopDetailsViewModel? SelectedFremenTroop =>
+        (activeSelection as FremenTroopSelection)?.Details;
     public bool HasDocument => document is not null;
     public bool HasNoDocument => document is null;
-    public bool HasSelection => SelectedLocation is not null || SelectedFremenTroop is not null;
-    public bool HasNoSelection => !HasSelection;
-    public bool HasLocationSelection => SelectedLocation is not null;
-    public bool HasFremenTroopSelection => SelectedFremenTroop is not null;
-    public string? SelectedName => SelectedFremenTroop?.Name ?? SelectedLocation?.Name;
-    public string? SelectedType => SelectedFremenTroop?.Type ?? SelectedLocation?.Type;
-    public bool IsSelectionAtreides => GetSelectedController() == AreaController.Atreides;
-    public bool IsSelectionDesert => GetSelectedController() == AreaController.Desert;
+    public bool HasSelection => activeSelection is not null;
+    public bool HasNoSelection => activeSelection is null;
+    public bool HasLocationSelection => activeSelection is LocationSelection;
+    public bool HasFremenTroopSelection => activeSelection is FremenTroopSelection;
+    public string? SelectedName => activeSelection?.Name;
+    public string? SelectedType => activeSelection?.Type;
+    public bool IsSelectionAtreides => activeSelection?.Controller == AreaController.Atreides;
+    public bool IsSelectionDesert => activeSelection?.Controller == AreaController.Desert;
     public bool IsAreaControlFilter => SelectedMapFilter == MapFilter.AreaControl;
     public bool IsSpiceDensityFilter => SelectedMapFilter == MapFilter.SpiceDensity;
     public bool IsDiscoveryFilter => SelectedMapFilter == MapFilter.Discovery;
@@ -75,7 +70,6 @@ public partial class MainViewModel(IPlatformService platform) : ViewModelBase
     public string TroopDisplayToolTip => IsTroopDisplayEnabled
         ? "Fremen troops shown. Click to hide them."
         : "Fremen troops hidden. Click to show them.";
-
 
     [RelayCommand]
     private void CycleTerrainMode() => TerrainMode = TerrainMode switch
@@ -100,7 +94,6 @@ public partial class MainViewModel(IPlatformService platform) : ViewModelBase
     [RelayCommand]
     private void SelectDiscoveryFilter() => SelectedMapFilter = MapFilter.Discovery;
 
-
     [RelayCommand(CanExecute = nameof(CanOpen))]
     private async Task OpenAsync()
     {
@@ -120,23 +113,24 @@ public partial class MainViewModel(IPlatformService platform) : ViewModelBase
             document = loaded;
             CurrentFileName = Path.GetFileName(filePath);
 
-            Locations.Clear();
+            LocationMarkers.Clear();
             foreach (var location in loaded.Locations)
             {
-                Locations.Add(new LocationMarkerViewModel(location, SelectLocation));
+                LocationMarkers.Add(new LocationMarkerViewModel(location, SelectLocation));
             }
 
-            FremenTroops.Clear();
+            FremenTroopMarkers.Clear();
             foreach (var troop in loaded.FremenTroops)
             {
                 var location = loaded.FindFremenTroopLocation(troop.Id);
                 if (location is not null)
                 {
-                    FremenTroops.Add(new FremenTroopMarkerViewModel(troop, location, SelectFremenTroop));
+                    FremenTroopMarkers.Add(
+                        new FremenTroopMarkerViewModel(troop, location, SelectFremenTroop));
                 }
             }
 
-            SelectLocation(null);
+            SetSelection(null);
             RefreshMapVisuals();
             StatusText = $"Loaded {loaded.Locations.Count} locations from {CurrentFileName}.";
             OnPropertyChanged(nameof(HasDocument));
@@ -185,80 +179,46 @@ public partial class MainViewModel(IPlatformService platform) : ViewModelBase
 
     private void SelectLocation(LocationMarkerViewModel? marker)
     {
-        if (marker is not null && ReferenceEquals(selectedMarker, marker))
-        {
-            marker = null;
-        }
-
-        if (selectedFremenTroopMarker is not null)
-        {
-            selectedFremenTroopMarker.IsSelected = false;
-            selectedFremenTroopMarker = null;
-            SelectedFremenTroop = null;
-        }
-
-        if (selectedMarker is not null)
-        {
-            selectedMarker.IsSelected = false;
-        }
-
-        selectedMarker = marker;
-        if (selectedMarker is not null)
-        {
-            selectedMarker.IsSelected = true;
-        }
-
-        SelectedLocation = marker is null ? null : new LocationDetailsViewModel(marker.Location, RefreshMapVisuals);
-        StatusText = marker is null
-            ? document is null ? "Open a Dune save to begin." : "Select a location or Fremen troop on the map."
-            : $"Editing {marker.Name}.";
+        var nextSelection = marker is null
+            || activeSelection is LocationSelection current
+                && ReferenceEquals(current.Marker, marker)
+            ? null
+            : new LocationSelection(
+                marker,
+                new LocationDetailsViewModel(marker.Location, RefreshMapVisuals));
+        SetSelection(nextSelection);
     }
 
     private void SelectFremenTroop(FremenTroopMarkerViewModel? marker)
     {
-        if (marker is not null && ReferenceEquals(selectedFremenTroopMarker, marker))
-        {
-            marker = null;
-        }
-
-        if (selectedMarker is not null)
-        {
-            selectedMarker.IsSelected = false;
-            selectedMarker = null;
-            SelectedLocation = null;
-        }
-
-        if (selectedFremenTroopMarker is not null)
-        {
-            selectedFremenTroopMarker.IsSelected = false;
-        }
-
-        selectedFremenTroopMarker = marker;
-        if (selectedFremenTroopMarker is not null)
-        {
-            selectedFremenTroopMarker.IsSelected = true;
-        }
-
-        SelectedFremenTroop = marker is null
+        var nextSelection = marker is null
+            || activeSelection is FremenTroopSelection current
+                && ReferenceEquals(current.Marker, marker)
             ? null
-            : new FremenTroopDetailsViewModel(marker.Troop, marker.Location, marker.RefreshDisplay);
-        StatusText = marker is null
-            ? document is null ? "Open a Dune save to begin." : "Select a location or Fremen troop on the map."
-            : $"Editing Fremen troop {marker.Troop.Id:D2} at {marker.Location.Name}.";
+            : new FremenTroopSelection(
+                marker,
+                new FremenTroopDetailsViewModel(
+                    marker.Troop,
+                    marker.Location,
+                    marker.RefreshDisplay));
+        SetSelection(nextSelection);
     }
+
+    private void SetSelection(IEditorSelection? selection)
+    {
+        activeSelection?.SetSelected(false);
+        activeSelection = selection;
+        activeSelection?.SetSelected(true);
+        StatusText = activeSelection?.EditingStatus ?? GetIdleStatus();
+        NotifySelectionChanged();
+    }
+
+    private string GetIdleStatus() => document is null
+        ? "Open a Dune save to begin."
+        : "Select a location or Fremen troop on the map.";
 
     [RelayCommand]
-    private void CloseSelection()
-    {
-        if (selectedFremenTroopMarker is not null)
-        {
-            SelectFremenTroop(null);
-        }
-        else
-        {
-            SelectLocation(null);
-        }
-    }
+    private void CloseSelection() => SetSelection(null);
 
     private void RefreshMapVisuals()
     {
@@ -267,7 +227,7 @@ public partial class MainViewModel(IPlatformService platform) : ViewModelBase
             return;
         }
 
-        foreach (var marker in Locations)
+        foreach (var marker in LocationMarkers)
         {
             marker.IsVisible = SelectedMapFilter switch
             {
@@ -276,23 +236,18 @@ public partial class MainViewModel(IPlatformService platform) : ViewModelBase
             };
         }
 
-        foreach (var troop in FremenTroops)
+        foreach (var marker in FremenTroopMarkers)
         {
-            troop.IsVisible = IsTroopDisplayEnabled && (SelectedMapFilter switch
+            marker.IsVisible = IsTroopDisplayEnabled && (SelectedMapFilter switch
             {
-                MapFilter.Discovery => troop.Location.Discovered,
+                MapFilter.Discovery => marker.Location.Discovered,
                 _ => true,
             });
         }
 
-        if (selectedMarker is not null && !selectedMarker.IsVisible)
+        if (activeSelection is { IsVisible: false })
         {
-            SelectLocation(null);
-        }
-
-        if (selectedFremenTroopMarker is not null && !selectedFremenTroopMarker.IsVisible)
-        {
-            SelectFremenTroop(null);
+            SetSelection(null);
         }
 
         var previousImage = MapFilterImage;
@@ -309,11 +264,8 @@ public partial class MainViewModel(IPlatformService platform) : ViewModelBase
         OnPropertyChanged(nameof(IsSpiceDensityFilter));
         OnPropertyChanged(nameof(IsDiscoveryFilter));
         RefreshMapVisuals();
-
-
         OnPropertyChanged(nameof(MapFilterOpacity));
     }
-
 
     partial void OnTerrainModeChanged(TerrainDisplayMode value)
     {
@@ -330,21 +282,11 @@ public partial class MainViewModel(IPlatformService platform) : ViewModelBase
         OnPropertyChanged(nameof(TroopDisplayToolTip));
         RefreshMapVisuals();
     }
-    partial void OnSelectedLocationChanged(LocationDetailsViewModel? value)
-    {
-        NotifySelectionChanged();
-    }
-
-    partial void OnSelectedFremenTroopChanged(FremenTroopDetailsViewModel? value)
-    {
-        NotifySelectionChanged();
-    }
-
-    private AreaController? GetSelectedController() =>
-        SelectedFremenTroop?.Location.Controller ?? SelectedLocation?.Location.Controller;
 
     private void NotifySelectionChanged()
     {
+        OnPropertyChanged(nameof(SelectedLocation));
+        OnPropertyChanged(nameof(SelectedFremenTroop));
         OnPropertyChanged(nameof(HasSelection));
         OnPropertyChanged(nameof(HasNoSelection));
         OnPropertyChanged(nameof(HasLocationSelection));
@@ -359,5 +301,40 @@ public partial class MainViewModel(IPlatformService platform) : ViewModelBase
     {
         OpenCommand.NotifyCanExecuteChanged();
         SaveCommand.NotifyCanExecuteChanged();
+    }
+
+    private interface IEditorSelection
+    {
+        string Name { get; }
+        string Type { get; }
+        string EditingStatus { get; }
+        AreaController Controller { get; }
+        bool IsVisible { get; }
+        void SetSelected(bool value);
+    }
+
+    private sealed record LocationSelection(
+        LocationMarkerViewModel Marker,
+        LocationDetailsViewModel Details) : IEditorSelection
+    {
+        public string Name => Details.Name;
+        public string Type => Details.Type;
+        public string EditingStatus => $"Editing {Marker.Name}.";
+        public AreaController Controller => Marker.Location.Controller;
+        public bool IsVisible => Marker.IsVisible;
+        public void SetSelected(bool value) => Marker.IsSelected = value;
+    }
+
+    private sealed record FremenTroopSelection(
+        FremenTroopMarkerViewModel Marker,
+        FremenTroopDetailsViewModel Details) : IEditorSelection
+    {
+        public string Name => Details.Name;
+        public string Type => Details.Type;
+        public string EditingStatus =>
+            $"Editing Fremen troop {Marker.Troop.Id.Value:D2} at {Marker.Location.Name}.";
+        public AreaController Controller => Marker.Location.Controller;
+        public bool IsVisible => Marker.IsVisible;
+        public void SetSelected(bool value) => Marker.IsSelected = value;
     }
 }

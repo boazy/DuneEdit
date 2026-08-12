@@ -15,9 +15,9 @@ internal static class MapFilterImageRenderer
     private static readonly Color LowSpice = Color.FromArgb(214, 130, 63, 22);
     private static readonly Color HighSpice = Color.FromArgb(224, 255, 210, 76);
 
-    public static WriteableBitmap Render(IReadOnlyList<Sietch> locations, MapFilter filter)
+    public static WriteableBitmap Render(IReadOnlyList<DuneLocation> locations, MapFilter filter)
     {
-        var locationsByField = new Sietch?[byte.MaxValue + 1];
+        var locationsByField = new DuneLocation?[byte.MaxValue + 1];
         foreach (var location in locations)
         {
 
@@ -47,7 +47,7 @@ internal static class MapFilterImageRenderer
         return bitmap;
     }
 
-    private static Color GetColor(Sietch? location, MapFilter filter) => filter switch
+    private static Color GetColor(DuneLocation? location, MapFilter filter) => filter switch
     {
         MapFilter.AreaControl => location?.Controller switch
         {

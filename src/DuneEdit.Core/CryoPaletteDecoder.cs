@@ -26,48 +26,58 @@ public static class CryoPaletteDecoder
 
         var palette = new byte[Rgb24Length];
         var position = 2;
-        var foundTerminator = false;
-
         while (position + 2 <= paletteEnd)
         {
-            if (resource[position] == byte.MaxValue && resource[position + 1] == byte.MaxValue)
+            if (IsTerminator(resource, position))
             {
-                foundTerminator = true;
-                break;
+                return palette;
             }
 
-            var firstColor = resource[position++];
-            var colorCount = resource[position++];
-            if (firstColor + colorCount > ColorCount)
-            {
-                throw new InvalidDataException("A Cryo subpalette extends beyond color index 255.");
-            }
-
-            var componentCount = checked(colorCount * ComponentsPerColor);
-            if (position > paletteEnd - componentCount)
-            {
-                throw new InvalidDataException("A Cryo subpalette extends beyond the palette boundary.");
-            }
-
-            var destination = firstColor * ComponentsPerColor;
-            for (var component = 0; component < componentCount; component++)
-            {
-                var value = resource[position++];
-                if (value > 0x3F)
-                {
-                    throw new InvalidDataException("A Cryo palette component exceeds the VGA 6-bit range.");
-                }
-
-                palette[destination + component] = ExpandVgaComponent(value);
-            }
+            position = DecodeSubpalette(resource, paletteEnd, palette, position);
         }
 
-        if (!foundTerminator)
+        throw new InvalidDataException("The Cryo palette has no FF FF terminator.");
+    }
+
+    private static bool IsTerminator(ReadOnlySpan<byte> resource, int position) =>
+        resource[position] == byte.MaxValue && resource[position + 1] == byte.MaxValue;
+
+    private static int DecodeSubpalette(
+        ReadOnlySpan<byte> resource,
+        int paletteEnd,
+        Span<byte> palette,
+        int position)
+    {
+        var firstColor = resource[position++];
+        var colorCount = resource[position++];
+        if (firstColor + colorCount > ColorCount)
         {
-            throw new InvalidDataException("The Cryo palette has no FF FF terminator.");
+            throw new InvalidDataException("A Cryo subpalette extends beyond color index 255.");
         }
 
-        return palette;
+        var componentCount = checked(colorCount * ComponentsPerColor);
+        if (position > paletteEnd - componentCount)
+        {
+            throw new InvalidDataException("A Cryo subpalette extends beyond the palette boundary.");
+        }
+
+        var destination = firstColor * ComponentsPerColor;
+        for (var component = 0; component < componentCount; component++)
+        {
+            palette[destination + component] = DecodeComponent(resource[position++]);
+        }
+
+        return position;
+    }
+
+    private static byte DecodeComponent(byte value)
+    {
+        if (value > 0x3F)
+        {
+            throw new InvalidDataException("A Cryo palette component exceeds the VGA 6-bit range.");
+        }
+
+        return ExpandVgaComponent(value);
     }
 
     private static byte ExpandVgaComponent(byte value) =>

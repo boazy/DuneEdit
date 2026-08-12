@@ -8,14 +8,14 @@ public enum AreaController
 }
 
 
-public sealed class Sietch
+public sealed class DuneLocation
 {
     public const int RecordSize = 0x1C;
 
     private const int StatusOffset = 0x0A;
     private readonly byte[] data;
 
-    internal Sietch(ReadOnlySpan<byte> data)
+    internal DuneLocation(ReadOnlySpan<byte> data)
     {
         if (data.Length != RecordSize)
         {
@@ -25,16 +25,26 @@ public sealed class Sietch
         this.data = data.ToArray();
     }
 
-    public byte RegionId { get => data[0x00]; set => data[0x00] = value; }
-    public byte SubregionId { get => data[0x01]; set => data[0x01] = value; }
-    public byte DesertAroundSietch { get => data[0x02]; set => data[0x02] = value; }
-    public byte MapPosX { get => data[0x03]; set => data[0x03] = value; }
-    public byte MapPosY { get => data[0x04]; set => data[0x04] = value; }
+    public LocationId Id => new(data[0x00], data[0x01]);
+    public byte DesertAround { get => data[0x02]; set => data[0x02] = value; }
+    public MapPosition MapPosition
+    {
+        get => new(data[0x03], data[0x04]);
+        set
+        {
+            data[0x03] = value.EncodedX;
+            data[0x04] = value.EncodedY;
+        }
+    }
+
     public byte Unk05 { get => data[0x05]; set => data[0x05] = value; }
-    public byte PosX { get => data[0x06]; set => data[0x06] = value; }
-    public byte PosY { get => data[0x07]; set => data[0x07] = value; }
-    public byte LocationType { get => data[0x08]; set => data[0x08] = value; }
-    public byte PrimaryTroopId { get => data[0x09]; set => data[0x09] = value; }
+
+    // These bytes are a second, local coordinate pair in the original record.
+    // Their exact in-game coordinate system is not yet known.
+    public byte LocalPositionX { get => data[0x06]; set => data[0x06] = value; }
+    public byte LocalPositionY { get => data[0x07]; set => data[0x07] = value; }
+    public byte RawTypeCode { get => data[0x08]; set => data[0x08] = value; }
+    public TroopId? PrimaryTroopId => DecodeTroopId(data[0x09]);
     public byte Unk0B { get => data[0x0B]; set => data[0x0B] = value; }
     public byte Unk0C { get => data[0x0C]; set => data[0x0C] = value; }
     public byte Unk0D { get => data[0x0D]; set => data[0x0D] = value; }
@@ -53,32 +63,34 @@ public sealed class Sietch
     public byte Bulbs { get => data[0x1A]; set => data[0x1A] = value; }
     public byte Water { get => data[0x1B]; set => data[0x1B] = value; }
 
-    public string Region => Regions.GetRegion(RegionId);
-    public string Subregion => Regions.GetSubregion(SubregionId);
+    public string Region => Regions.GetRegion(Id.RegionId);
+    public string Subregion => Regions.GetSubregion(Id.SubregionId);
     public string Name => $"{Region} {Subregion}";
 
-    public string LocationTypeGroup => LocationType switch
+    public LocationKind Kind => RawTypeCode switch
     {
-        <= 0x10 => "Sietch",
-        0x20 => "Carthag",
-        0x21 => "Village",
-        >= 0x22 and <= 0x2F => "Fort",
-        0x30 => "Arrakeen",
-        _ => "Unknown",
+        <= 0x10 => LocationKind.Sietch,
+        0x20 => LocationKind.CarthagPalace,
+        0x21 => LocationKind.Village,
+        >= 0x22 and <= 0x2F => LocationKind.Fort,
+        0x30 => LocationKind.ArrakeenPalace,
+        _ => LocationKind.Unknown,
     };
 
-    public string LocationTypeTitle => LocationTypeGroup switch
+    public AreaController Controller
     {
-        "Carthag" => "Carthag Palace",
-        "Arrakeen" => "Arrakeen Palace",
-        var title => $"{title}:",
-    };
+        get
+        {
+            if (InventoryVisible)
+            {
+                return AreaController.Atreides;
+            }
 
-    public AreaController Controller => InventoryVisible
-        ? AreaController.Atreides
-        : LocationType is >= 0x28 and <= 0x30
-            ? AreaController.Harkonnen
-            : AreaController.Desert;
+            return RawTypeCode is >= 0x28 and <= 0x30
+                ? AreaController.Harkonnen
+                : AreaController.Desert;
+        }
+    }
 
     public bool Vegetation { get => GetStatus(0); set => SetStatus(0, value); }
     public bool UnderAttack { get => GetStatus(1); set => SetStatus(1, value); }
@@ -89,12 +101,12 @@ public sealed class Sietch
     public bool Prospected { get => GetStatus(6); set => SetStatus(6, value); }
     public bool Discovered { get => !GetStatus(7); set => SetStatus(7, !value); }
 
-    internal void CopyTo(Span<byte> destination)
-    {
-        data.CopyTo(destination);
-    }
+    internal void CopyTo(Span<byte> destination) => data.CopyTo(destination);
 
     public byte[] ToArray() => (byte[])data.Clone();
+
+    private static TroopId? DecodeTroopId(byte value) =>
+        value == 0 ? null : new TroopId(value);
 
     private bool GetStatus(int bit) => (data[StatusOffset] & (1 << bit)) != 0;
 

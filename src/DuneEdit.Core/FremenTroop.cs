@@ -16,12 +16,14 @@ public sealed class FremenTroop
         this.data = data.ToArray();
     }
 
-    public byte Id => data[0x00];
-    public byte NextTroopId => data[0x01];
-    public byte PositionAroundLocation => data[0x02];
-    public byte Occupation { get => data[0x03]; set => data[0x03] = value; }
-    public bool IsRecruited => Occupation is < 128 or > 159;
-    public TroopOccupationInfo OccupationInfo => TroopOccupationInfo.FromRawJobCode(Occupation);
+    public TroopId Id => new(data[0x00]);
+    public TroopId? NextTroopId => data[0x01] == 0 ? null : new TroopId(data[0x01]);
+    public TroopPlacement Placement => Enum.IsDefined((TroopPlacement)data[0x02])
+        ? (TroopPlacement)data[0x02]
+        : TroopPlacement.Unknown;
+    public byte RawJobCode { get => data[0x03]; set => data[0x03] = value; }
+    public bool IsRecruited => RawJobCode is < 128 or > 159;
+    public TroopOccupationInfo OccupationInfo => TroopOccupationInfo.FromRawJobCode(RawJobCode);
     public FremenTroopRole Role => OccupationInfo.Occupation switch
     {
         TroopOccupation.Spice => FremenTroopRole.Spice,
@@ -30,13 +32,12 @@ public sealed class FremenTroop
         _ => FremenTroopRole.Military,
     };
 
-    public void ApplyOccupationInfo(TroopOccupationInfo occupationInfo)
-    {
-        Occupation = occupationInfo.RawJobCode;
-    }
+    public void ApplyOccupationInfo(TroopOccupationInfo occupationInfo) =>
+        RawJobCode = occupationInfo.RawJobCode;
+
     public byte Motivation { get => data[0x15]; set => data[0x15] = value; }
     public byte SpiceRank { get => data[0x16]; set => data[0x16] = value; }
-    public byte ArmyRank { get => data[0x17]; set => data[0x17] = value; }
+    public byte MilitaryRank { get => data[0x17]; set => data[0x17] = value; }
     public byte EcologyRank { get => data[0x18]; set => data[0x18] = value; }
     public byte PopulationTens { get => data[0x1A]; set => data[0x1A] = value; }
     public int People

@@ -13,29 +13,26 @@ public sealed class LocationMarkerViewModel : ViewModelBase
     private const double MapMargin = 20;
     private const double SpriteUpscaleFactor = 4;
 
-    private static readonly ConcurrentDictionary<string, Bitmap> Images = new(StringComparer.Ordinal);
+    private static readonly ConcurrentDictionary<LocationKind, Bitmap> Images = new();
     private bool isSelected;
     private bool isVisible = true;
     private readonly double centerX;
     private readonly double centerY;
 
-    public LocationMarkerViewModel(Sietch location, Action<LocationMarkerViewModel> select)
+    public LocationMarkerViewModel(DuneLocation location, Action<LocationMarkerViewModel> select)
     {
         Location = location;
-        Image = Images.GetOrAdd(location.LocationTypeGroup, LoadImage);
-        var imageScale = (location.LocationTypeGroup == "Sietch" ? 0.35 : 0.27) / SpriteUpscaleFactor;
+        Image = Images.GetOrAdd(location.Kind, LoadImage);
+        var imageScale = (location.Kind == LocationKind.Sietch ? 0.35 : 0.27) / SpriteUpscaleFactor;
         Width = Image.PixelSize.Width * imageScale;
         Height = Image.PixelSize.Height * imageScale;
-        centerX = ConvertCoordinate(location.MapPosX, MapWidth, byte.MaxValue);
-
-        byte adjustedY = location.MapPosY > 180
-            ? (byte)(location.MapPosY - 180)
-            : (byte)(location.MapPosY + 75);
-        centerY = ConvertCoordinate(adjustedY, MapHeight, 150);
+        var center = MapProjection.Project(location.MapPosition, MapWidth, MapHeight, MapMargin);
+        centerX = center.X;
+        centerY = center.Y;
         SelectCommand = new RelayCommand(() => select(this));
     }
 
-    public Sietch Location { get; }
+    public DuneLocation Location { get; }
     public string Name => Location.Name;
     public Bitmap Image { get; }
     public double Width { get; }
@@ -73,15 +70,10 @@ public sealed class LocationMarkerViewModel : ViewModelBase
         }
     }
 
-    private static double ConvertCoordinate(byte coordinate, double maximum, byte coordinateMaximum)
-    {
-        var usable = maximum - (MapMargin * 2);
-        return MapMargin + Math.Round((coordinate / (double)coordinateMaximum) * usable);
-    }
 
-    private static Bitmap LoadImage(string locationType)
+    private static Bitmap LoadImage(LocationKind kind)
     {
-        var uri = new Uri($"avares://DuneEdit.Desktop/Assets/Locations/{locationType}.4xbrz.png");
+        var uri = new Uri($"avares://DuneEdit.Desktop/Assets/Locations/{kind.ToAssetName()}.4xbrz.png");
         using var stream = AssetLoader.Open(uri);
         return new Bitmap(stream);
     }

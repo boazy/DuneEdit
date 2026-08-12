@@ -4,7 +4,7 @@ namespace DuneEdit.Desktop.ViewModels;
 
 public sealed class FremenTroopDetailsViewModel : ViewModelBase
 {
-    private static readonly IReadOnlyList<TroopOccupation> canonicalOccupations =
+    private static readonly IReadOnlyList<TroopOccupation> CanonicalOccupations =
     [
         TroopOccupation.Military,
         TroopOccupation.Ecology,
@@ -15,27 +15,19 @@ public sealed class FremenTroopDetailsViewModel : ViewModelBase
 
     private readonly Action? displayChanged;
     private TroopOccupationInfo occupationInfo;
-    private TroopOccupation selectedOccupation;
-    private TroopJob selectedJob;
-    private TroopAllegiance selectedAllegiance;
-    private bool jobCompleted;
 
-    public FremenTroopDetailsViewModel(FremenTroop troop, Sietch location, Action? displayChanged = null)
+    public FremenTroopDetailsViewModel(FremenTroop troop, DuneLocation location, Action? displayChanged = null)
     {
         Troop = troop;
         Location = location;
         this.displayChanged = displayChanged;
         occupationInfo = troop.OccupationInfo;
-        selectedOccupation = occupationInfo.Occupation;
-        selectedJob = occupationInfo.Job;
-        selectedAllegiance = occupationInfo.Allegiance;
-        jobCompleted = occupationInfo.JobCompleted;
 
         Attributes =
         [
             new("Motivation", () => troop.Motivation, value => troop.Motivation = value),
             new("Spice rank", () => troop.SpiceRank, value => troop.SpiceRank = value),
-            new("Military rank", () => troop.ArmyRank, value => troop.ArmyRank = value),
+            new("Military rank", () => troop.MilitaryRank, value => troop.MilitaryRank = value),
             new("Ecology rank", () => troop.EcologyRank, value => troop.EcologyRank = value),
         ];
 
@@ -54,9 +46,9 @@ public sealed class FremenTroopDetailsViewModel : ViewModelBase
     }
 
     public FremenTroop Troop { get; }
-    public Sietch Location { get; }
+    public DuneLocation Location { get; }
     public string Type => "Fremen troop";
-    public string Name => $"Troop {Troop.Id:D2} · {Location.Name}";
+    public string Name => $"Troop {Troop.Id.Value:D2} · {Location.Name}";
     public IReadOnlyList<NumericFieldViewModel> Attributes { get; }
     public ScaledNumericFieldViewModel People { get; }
     public IReadOnlyList<BooleanFieldViewModel> Equipment { get; }
@@ -67,90 +59,80 @@ public sealed class FremenTroopDetailsViewModel : ViewModelBase
     public bool IsJobCompletedEnabled => occupationInfo.IsJobCompletedApplicable;
 
     public IReadOnlyList<TroopOccupation> AvailableOccupations => occupationInfo.IsUnknown
-        ? [TroopOccupation.Unknown, .. canonicalOccupations]
-        : canonicalOccupations;
+        ? [TroopOccupation.Unknown, .. CanonicalOccupations]
+        : CanonicalOccupations;
 
     public IReadOnlyList<TroopJob> AvailableJobs => occupationInfo.IsUnknown
         ? []
-        : TroopOccupationInfo.GetAllowedJobs(selectedOccupation, selectedAllegiance);
+        : TroopOccupationInfo.GetAllowedJobs(occupationInfo.Occupation, occupationInfo.Allegiance);
 
     public IReadOnlyList<TroopAllegiance> AvailableAllegiances => occupationInfo.IsUnknown
         ? []
-        : TroopOccupationInfo.GetAllowedAllegiances(selectedOccupation);
+        : TroopOccupationInfo.GetAllowedAllegiances(occupationInfo.Occupation);
 
     public TroopOccupation SelectedOccupation
     {
-        get => selectedOccupation;
+        get => occupationInfo.Occupation;
         set
         {
-            if (!SetProperty(ref selectedOccupation, value) || value == TroopOccupation.Unknown)
+            if (value == occupationInfo.Occupation || value == TroopOccupation.Unknown)
             {
                 return;
             }
 
-            selectedAllegiance = TroopOccupationInfo.GetAllowedAllegiances(value)[0];
-            selectedJob = TroopOccupationInfo.GetAllowedJobs(value, selectedAllegiance)[0];
-            jobCompleted = false;
-            ApplyEditedOccupation();
-            NotifyOccupationControlsChanged();
+            ApplyEditedOccupation(occupationInfo.WithOccupation(value));
         }
     }
 
     public TroopJob SelectedJob
     {
-        get => selectedJob;
+        get => occupationInfo.Job;
         set
         {
-            if (!SetProperty(ref selectedJob, value) || occupationInfo.IsUnknown)
+            if (value == occupationInfo.Job || occupationInfo.IsUnknown)
             {
                 return;
             }
 
-            ApplyEditedOccupation();
+            ApplyEditedOccupation(occupationInfo.WithJob(value));
         }
     }
 
     public TroopAllegiance SelectedAllegiance
     {
-        get => selectedAllegiance;
+        get => occupationInfo.Allegiance;
         set
         {
-            if (!SetProperty(ref selectedAllegiance, value) || occupationInfo.IsUnknown)
+            if (value == occupationInfo.Allegiance || occupationInfo.IsUnknown)
             {
                 return;
             }
 
-            selectedJob = TroopOccupationInfo.GetAllowedJobs(selectedOccupation, value)[0];
-            ApplyEditedOccupation();
-            NotifyOccupationControlsChanged();
+            ApplyEditedOccupation(occupationInfo.WithAllegiance(value));
         }
     }
 
     public bool JobCompleted
     {
-        get => jobCompleted;
+        get => occupationInfo.JobCompleted;
         set
         {
-            if (!SetProperty(ref jobCompleted, value) || occupationInfo.IsUnknown)
+            if (value == occupationInfo.JobCompleted || occupationInfo.IsUnknown)
             {
                 return;
             }
 
-            ApplyEditedOccupation();
+            ApplyEditedOccupation(occupationInfo.WithJobCompleted(value));
         }
     }
 
-    private void ApplyEditedOccupation()
+    private void ApplyEditedOccupation(TroopOccupationInfo edited)
     {
-        occupationInfo = TroopOccupationInfo.CreateEdited(
-            selectedOccupation,
-            selectedJob,
-            jobCompleted,
-            selectedAllegiance);
+        occupationInfo = edited;
         Troop.ApplyOccupationInfo(occupationInfo);
+        NotifyOccupationControlsChanged();
         OnPropertyChanged(nameof(CurrentGameState));
         OnPropertyChanged(nameof(HasCurrentGameState));
-        OnPropertyChanged(nameof(IsJobCompletedEnabled));
         displayChanged?.Invoke();
     }
 
@@ -159,6 +141,7 @@ public sealed class FremenTroopDetailsViewModel : ViewModelBase
         OnPropertyChanged(nameof(AvailableOccupations));
         OnPropertyChanged(nameof(AvailableJobs));
         OnPropertyChanged(nameof(AvailableAllegiances));
+        OnPropertyChanged(nameof(SelectedOccupation));
         OnPropertyChanged(nameof(SelectedJob));
         OnPropertyChanged(nameof(SelectedAllegiance));
         OnPropertyChanged(nameof(JobCompleted));

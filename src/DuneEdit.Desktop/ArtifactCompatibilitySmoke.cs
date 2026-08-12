@@ -18,7 +18,7 @@ internal static class ArtifactCompatibilitySmoke
             File.WriteAllBytes(filePath, CreateCompressedFixture());
             await viewModel.LoadFileAsync(filePath);
 
-            if (viewModel.Locations.Count != LocSequences.compressed.Length - 1)
+            if (viewModel.LocationMarkers.Count != LocationSignatures.CompressedSave.Length - 1)
             {
                 throw new InvalidOperationException("The desktop editor did not load every fixture location.");
             }
@@ -29,7 +29,7 @@ internal static class ArtifactCompatibilitySmoke
             }
 
             viewModel.SelectAreaControlFilterCommand.Execute(null);
-            var discoveredDesertMarker = viewModel.Locations.FirstOrDefault(marker =>
+            var discoveredDesertMarker = viewModel.LocationMarkers.FirstOrDefault(marker =>
                 marker.Location.Discovered && marker.Location.Controller == AreaController.Desert)
                 ?? throw new InvalidOperationException("The fixture did not contain a discovered desert location.");
             if (!discoveredDesertMarker.IsVisible)
@@ -43,7 +43,7 @@ internal static class ArtifactCompatibilitySmoke
                 throw new InvalidOperationException("The editor did not select the desert location.");
             }
 
-            var undiscoveredControlledMarker = viewModel.Locations.FirstOrDefault(marker =>
+            var undiscoveredControlledMarker = viewModel.LocationMarkers.FirstOrDefault(marker =>
                 marker.Location.Controller != AreaController.Desert)
                 ?? throw new InvalidOperationException("The fixture did not contain a controlled location.");
             undiscoveredControlledMarker.Location.Discovered = false;
@@ -54,26 +54,26 @@ internal static class ArtifactCompatibilitySmoke
                 throw new InvalidOperationException("The control map hid an undiscovered controlled location.");
             }
 
-            var location = viewModel.Locations[12].Location;
+            var location = viewModel.LocationMarkers[12].Location;
             var details = new LocationDetailsViewModel(location);
             var desertField = details.Advanced.Single(field => field.Label == "Desert around");
-            var editedValue = (byte)(location.DesertAroundSietch ^ 0x5A);
+            var editedValue = (byte)(location.DesertAround ^ 0x5A);
             desertField.Value = editedValue;
 
-            if (location.DesertAroundSietch != editedValue)
+            if (location.DesertAround != editedValue)
             {
                 throw new InvalidOperationException("The desktop editor did not apply the fixture edit.");
             }
 
             await viewModel.SaveFileAsync();
             var reparsed = DuneSavegame.Load(filePath);
-            if (reparsed.Locations[12].DesertAroundSietch != editedValue)
+            if (reparsed.Locations[12].DesertAround != editedValue)
             {
                 throw new InvalidOperationException("The saved fixture did not retain the edited value.");
             }
 
             await viewModel.LoadFileAsync(filePath);
-            if (viewModel.Locations[12].Location.DesertAroundSietch != editedValue)
+            if (viewModel.LocationMarkers[12].Location.DesertAround != editedValue)
             {
                 throw new InvalidOperationException("The desktop editor did not retain the edit after reopening the fixture.");
             }
@@ -88,8 +88,8 @@ internal static class ArtifactCompatibilitySmoke
 
     private static byte[] CreateCompressedFixture()
     {
-        var sequences = LocSequences.compressed;
-        var length = LocationBlockOffset + ((sequences.Length - 1) * Sietch.RecordSize) + 3;
+        var sequences = LocationSignatures.CompressedSave;
+        var length = LocationBlockOffset + ((sequences.Length - 1) * DuneLocation.RecordSize) + 3;
         var data = new byte[length];
         data[0] = 0x02;
         data[2] = SavegameCompression.Marker;
@@ -103,17 +103,17 @@ internal static class ArtifactCompatibilitySmoke
         for (var index = 0; index < sequences.Length; index++)
         {
             var sequence = sequences[index];
-            var offset = LocationBlockOffset + (index * Sietch.RecordSize);
-            data[offset] = sequence.v1;
-            data[offset + 1] = sequence.v2;
-            data[offset + 2] = sequence.v3;
+            var offset = LocationBlockOffset + (index * DuneLocation.RecordSize);
+            data[offset] = sequence.RegionId;
+            data[offset + 1] = sequence.SubregionId;
+            data[offset + 2] = sequence.Terminator;
 
             if (index >= sequences.Length - 1)
             {
                 continue;
             }
 
-            for (var field = 3; field < Sietch.RecordSize; field++)
+            for (var field = 3; field < DuneLocation.RecordSize; field++)
             {
                 data[offset + field] = (byte)((index + field) & 0xFF);
             }

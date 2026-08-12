@@ -30,7 +30,7 @@
            IsHitTestVisible="False" />
     <ItemsControl Width="1000"
                   Height="620"
-                  ItemsSource="{Binding Locations}">
+                  ItemsSource="{Binding LocationMarkers}">
       <ItemsControl.ItemsPanel>
         <ItemsPanelTemplate><Canvas /></ItemsPanelTemplate>
       </ItemsControl.ItemsPanel>
@@ -65,7 +65,7 @@
     </ItemsControl>
     <ItemsControl Width="1000"
                   Height="620"
-                  ItemsSource="{Binding FremenTroops}">
+                  ItemsSource="{Binding FremenTroopMarkers}">
       <ItemsControl.ItemsPanel>
         <ItemsPanelTemplate><Canvas /></ItemsPanelTemplate>
       </ItemsControl.ItemsPanel>

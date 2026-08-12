@@ -20,7 +20,7 @@ public sealed class FremenTroopMarkerViewModel : ViewModelBase
     private readonly double centerY;
     public FremenTroopMarkerViewModel(
         FremenTroop troop,
-        Sietch location,
+        DuneLocation location,
         Action<FremenTroopMarkerViewModel> select)
     {
         Troop = troop;
@@ -28,18 +28,16 @@ public sealed class FremenTroopMarkerViewModel : ViewModelBase
         Image = LoadImage(troop);
         (Width, Height) = GetDimensions(Image);
 
-        var (xOffset, yOffset) = GetLocationOffset(troop.PositionAroundLocation);
-        centerX = ConvertCoordinate(location.MapPosX, MapWidth, byte.MaxValue) + xOffset;
-        byte adjustedY = location.MapPosY > 180
-            ? (byte)(location.MapPosY - 180)
-            : (byte)(location.MapPosY + 75);
-        centerY = ConvertCoordinate(adjustedY, MapHeight, 150) + yOffset;
+        var center = MapProjection.Project(location.MapPosition, MapWidth, MapHeight, MapMargin);
+        var offset = MapProjection.GetTroopOffset(troop.Placement);
+        centerX = center.X + offset.X;
+        centerY = center.Y + offset.Y;
         SelectCommand = new RelayCommand(() => select(this));
     }
 
     public FremenTroop Troop { get; }
-    public Sietch Location { get; }
-    public string Name => $"Fremen troop {Troop.Id:D2} — {Location.Name}";
+    public DuneLocation Location { get; }
+    public string Name => $"Fremen troop {Troop.Id.Value:D2} — {Location.Name}";
     public Bitmap Image { get; private set; }
     public double Width { get; private set; }
     public double Height { get; private set; }
@@ -83,18 +81,6 @@ public sealed class FremenTroopMarkerViewModel : ViewModelBase
         OnPropertyChanged(nameof(Top));
     }
 
-    private static (double X, double Y) GetLocationOffset(byte position) => position switch
-    {
-        1 => (0, 13),
-        2 => (11, 10),
-        3 => (-11, 10),
-        4 => (14, 0),
-        5 => (-14, 0),
-        6 => (11, -10),
-        7 => (-11, -10),
-        8 => (0, -13),
-        _ => (0, 0),
-    };
 
     private static Bitmap LoadImage(FremenTroop troop)
     {
@@ -118,9 +104,4 @@ public sealed class FremenTroopMarkerViewModel : ViewModelBase
     private static (double Width, double Height) GetDimensions(Bitmap image) =>
         (image.PixelSize.Width * SpriteScale, image.PixelSize.Height * SpriteScale);
 
-    private static double ConvertCoordinate(byte coordinate, double maximum, byte coordinateMaximum)
-    {
-        var usable = maximum - (MapMargin * 2);
-        return MapMargin + Math.Round((coordinate / (double)coordinateMaximum) * usable);
-    }
 }

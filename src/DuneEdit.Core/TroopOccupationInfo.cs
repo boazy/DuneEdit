@@ -115,6 +115,36 @@ public readonly record struct TroopOccupationInfo(
         _ => [],
     };
 
+    public TroopOccupationInfo WithOccupation(TroopOccupation occupation)
+    {
+        if (occupation == Occupation)
+        {
+            return this;
+        }
+
+        var allegiances = GetAllowedAllegiances(occupation);
+        if (allegiances.Count == 0)
+        {
+            throw new ArgumentException("The occupation has no encodable allegiance.", nameof(occupation));
+        }
+
+        var allegiance = allegiances[0];
+        var job = GetAllowedJobs(occupation, allegiance)[0];
+        return CreateEdited(occupation, job, jobCompleted: false, allegiance);
+    }
+
+    public TroopOccupationInfo WithJob(TroopJob job) =>
+        CreateEdited(Occupation, job, JobCompleted, Allegiance);
+
+    public TroopOccupationInfo WithAllegiance(TroopAllegiance allegiance)
+    {
+        var job = GetAllowedJobs(Occupation, allegiance)[0];
+        return CreateEdited(Occupation, job, JobCompleted, allegiance);
+    }
+
+    public TroopOccupationInfo WithJobCompleted(bool jobCompleted) =>
+        CreateEdited(Occupation, Job, jobCompleted, Allegiance);
+
     public string CurrentGameState => RawJobCode switch
     {
         2 or 18 => "Waiting for orders (occupation not encoded)",

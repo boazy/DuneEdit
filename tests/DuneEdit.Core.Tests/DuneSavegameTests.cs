@@ -8,24 +8,25 @@ public sealed class DuneSavegameTests
 {
     private const int LocationBlockOffset = SavegameCompression.HeaderLength + 13;
 
+
     [Fact]
     public void ParsesEveryLocationFromCompressedSave()
     {
         var savegame = DuneSavegame.Parse(CreateCompressedDocument(), SavegameFormat.CompressedSave);
 
-        Assert.Equal(LocSequences.compressed.Length - 1, savegame.Locations.Count);
+        Assert.Equal(LocationSignatures.CompressedSave.Length - 1, savegame.Locations.Count);
         Assert.Equal("Carthag (Atreides Palace)", savegame.Locations[0].Name);
-        Assert.NotNull(savegame.FindLocation(0x0C, 0x06));
+        Assert.NotNull(savegame.FindLocation(new LocationId(0x0C, 0x06)));
     }
 
     [Fact]
     public void ParsesEveryLocationFromExecutable()
     {
-        var executable = CreateDecompressedDocument(LocSequences.uncompressed);
+        var executable = CreateDecompressedDocument(LocationSignatures.Executable);
 
         var savegame = DuneSavegame.Parse(executable, SavegameFormat.Executable);
 
-        Assert.Equal(LocSequences.uncompressed.Length - 1, savegame.Locations.Count);
+        Assert.Equal(LocationSignatures.Executable.Length - 1, savegame.Locations.Count);
         Assert.Equal(SavegameFormat.Executable, savegame.Format);
     }
 
@@ -83,7 +84,7 @@ public sealed class DuneSavegameTests
         var savegame = DuneSavegame.Parse(CreateCompressedDocument(), SavegameFormat.CompressedSave);
         var location = savegame.Locations[0];
 
-        location.LocationType = 0x30;
+        location.RawTypeCode = 0x30;
         location.InventoryVisible = false;
         Assert.Equal(AreaController.Harkonnen, location.Controller);
 
@@ -91,7 +92,7 @@ public sealed class DuneSavegameTests
         Assert.Equal(AreaController.Atreides, location.Controller);
 
         location.InventoryVisible = false;
-        location.LocationType = 0x21;
+        location.RawTypeCode = 0x21;
         Assert.Equal(AreaController.Desert, location.Controller);
     }
 
@@ -108,15 +109,15 @@ public sealed class DuneSavegameTests
     }
 
     [Fact]
-    public void EditingDesertAroundSietchCanBeParsedAgain()
+    public void EditingDesertAroundLocationCanBeParsedAgain()
     {
         var original = DuneSavegame.Parse(CreateCompressedDocument(), SavegameFormat.CompressedSave);
         var editedLocation = original.Locations[12];
-        editedLocation.DesertAroundSietch ^= 0xFF;
+        editedLocation.DesertAround ^= 0xFF;
 
         var reparsed = DuneSavegame.Parse(original.ToFileBytes(), SavegameFormat.CompressedSave);
 
-        Assert.Equal(editedLocation.DesertAroundSietch, reparsed.Locations[12].DesertAroundSietch);
+        Assert.Equal(editedLocation.DesertAround, reparsed.Locations[12].DesertAround);
         Assert.Equal(
             original.Locations.Select(location => location.ToArray()),
             reparsed.Locations.Select(location => location.ToArray()));
@@ -128,9 +129,9 @@ public sealed class DuneSavegameTests
         var savegame = DuneSavegame.Parse(
             SavegameCompression.Compress(CreateDocumentWithFremenTroops()),
             SavegameFormat.CompressedSave);
-        var troop = Assert.Single(savegame.FremenTroops, troop => troop.Id == 1);
+        var troop = Assert.Single(savegame.FremenTroops, troop => troop.Id.Value == 1);
 
-        troop.Occupation = 28;
+        troop.RawJobCode = 28;
         Assert.Equal(TroopOccupation.Spice, troop.OccupationInfo.Occupation);
         Assert.Equal(TroopJob.Mining, troop.OccupationInfo.Job);
         Assert.True(troop.OccupationInfo.JobCompleted);
@@ -142,19 +143,19 @@ public sealed class DuneSavegameTests
             true,
             TroopAllegiance.Harkonnen));
         troop.Motivation = 100;
-        troop.ArmyRank = 99;
+        troop.MilitaryRank = 99;
         troop.People = 340;
         troop.HasWeirdingModules = true;
 
         var reparsed = DuneSavegame.Parse(savegame.ToFileBytes(), SavegameFormat.CompressedSave);
-        var persisted = Assert.Single(reparsed.FremenTroops, troop => troop.Id == 1);
-        Assert.Equal(31, persisted.Occupation);
+        var persisted = Assert.Single(reparsed.FremenTroops, troop => troop.Id.Value == 1);
+        Assert.Equal(31, persisted.RawJobCode);
         Assert.Equal(TroopOccupation.Spice, persisted.OccupationInfo.Occupation);
         Assert.Equal(TroopJob.SearchingForEquipment, persisted.OccupationInfo.Job);
         Assert.True(persisted.OccupationInfo.JobCompleted);
         Assert.Equal(TroopAllegiance.Harkonnen, persisted.OccupationInfo.Allegiance);
         Assert.Equal(100, persisted.Motivation);
-        Assert.Equal(99, persisted.ArmyRank);
+        Assert.Equal(99, persisted.MilitaryRank);
         Assert.Equal(340, persisted.People);
         Assert.True(persisted.HasWeirdingModules);
     }
@@ -165,19 +166,19 @@ public sealed class DuneSavegameTests
         var savegame = DuneSavegame.Parse(
             SavegameCompression.Compress(CreateDocumentWithFremenTroops()),
             SavegameFormat.CompressedSave);
-        var troop = Assert.Single(savegame.FremenTroops, troop => troop.Id == 1);
+        var troop = Assert.Single(savegame.FremenTroops, troop => troop.Id.Value == 1);
 
         for (var rawJobCode = byte.MinValue; rawJobCode < byte.MaxValue; rawJobCode++)
         {
             var info = TroopOccupationInfo.FromRawJobCode(rawJobCode);
             Assert.Equal(rawJobCode, info.RawJobCode);
             troop.ApplyOccupationInfo(info);
-            Assert.Equal(rawJobCode, troop.Occupation);
+            Assert.Equal(rawJobCode, troop.RawJobCode);
         }
 
         var finalInfo = TroopOccupationInfo.FromRawJobCode(byte.MaxValue);
         troop.ApplyOccupationInfo(finalInfo);
-        Assert.Equal(byte.MaxValue, troop.Occupation);
+        Assert.Equal(byte.MaxValue, troop.RawJobCode);
     }
 
     [Fact]
@@ -186,14 +187,14 @@ public sealed class DuneSavegameTests
         var savegame = DuneSavegame.Parse(
             SavegameCompression.Compress(CreateDocumentWithFremenTroops()),
             SavegameFormat.CompressedSave);
-        var troop = Assert.Single(savegame.FremenTroops, troop => troop.Id == 2);
+        var troop = Assert.Single(savegame.FremenTroops, troop => troop.Id.Value == 2);
 
-        troop.Occupation = 33;
+        troop.RawJobCode = 33;
         var rawState = troop.OccupationInfo;
         Assert.True(rawState.IsUnknown);
         Assert.Equal(33, rawState.RawJobCode);
         troop.ApplyOccupationInfo(rawState);
-        Assert.Equal(33, troop.Occupation);
+        Assert.Equal(33, troop.RawJobCode);
 
         var details = new FremenTroopDetailsViewModel(troop, savegame.Locations[0]);
         Assert.Contains(TroopOccupation.Unknown, details.AvailableOccupations);
@@ -201,7 +202,7 @@ public sealed class DuneSavegameTests
         Assert.False(details.IsJobCompletedEnabled);
 
         details.SelectedOccupation = TroopOccupation.Spice;
-        Assert.Equal(0, troop.Occupation);
+        Assert.Equal(0, troop.RawJobCode);
         Assert.Equal(TroopJob.Mining, troop.OccupationInfo.Job);
         Assert.Equal(TroopAllegiance.Atreides, troop.OccupationInfo.Allegiance);
     }
@@ -212,24 +213,24 @@ public sealed class DuneSavegameTests
         var savegame = DuneSavegame.Parse(
             SavegameCompression.Compress(CreateDocumentWithFremenTroops()),
             SavegameFormat.CompressedSave);
-        var troop = Assert.Single(savegame.FremenTroops, troop => troop.Id == 1);
+        var troop = Assert.Single(savegame.FremenTroops, troop => troop.Id.Value == 1);
 
-        troop.Occupation = 0;
+        troop.RawJobCode = 0;
         var details = new FremenTroopDetailsViewModel(troop, savegame.Locations[0]);
         Assert.True(details.IsJobEnabled);
         Assert.True(details.IsAllegianceEnabled);
         Assert.True(details.IsJobCompletedEnabled);
 
         details.JobCompleted = true;
-        Assert.Equal(16, troop.Occupation);
+        Assert.Equal(16, troop.RawJobCode);
         details.SelectedJob = TroopJob.SearchingForEquipment;
-        Assert.Equal(19, troop.Occupation);
+        Assert.Equal(19, troop.RawJobCode);
         details.SelectedAllegiance = TroopAllegiance.Harkonnen;
-        Assert.Equal(28, troop.Occupation);
+        Assert.Equal(28, troop.RawJobCode);
         details.SelectedJob = TroopJob.SearchingForEquipment;
-        Assert.Equal(31, troop.Occupation);
+        Assert.Equal(31, troop.RawJobCode);
 
-        troop.Occupation = 129;
+        troop.RawJobCode = 129;
         var unrecruitedDetails = new FremenTroopDetailsViewModel(troop, savegame.Locations[0]);
         Assert.Equal(TroopOccupation.Unrecruited, unrecruitedDetails.SelectedOccupation);
         Assert.False(unrecruitedDetails.IsJobEnabled);
@@ -249,6 +250,130 @@ public sealed class DuneSavegameTests
     }
 
     [Fact]
+    public void LocationSequencesPreserveKnownBoundaries()
+    {
+        var compressedFirst = LocationSignatures.CompressedSave[0];
+        var compressedLast = LocationSignatures.CompressedSave[^1];
+        var executableFirst = LocationSignatures.Executable[0];
+        var executableLast = LocationSignatures.Executable[^1];
+
+        Assert.Equal((0x02, 0x01, 0x15), (compressedFirst.RegionId, compressedFirst.SubregionId, compressedFirst.Terminator));
+        Assert.Equal((0xFF, 0xFF, 0x01), (compressedLast.RegionId, compressedLast.SubregionId, compressedLast.Terminator));
+        Assert.Equal((0x02, 0x01, 0x15), (executableFirst.RegionId, executableFirst.SubregionId, executableFirst.Terminator));
+        Assert.Equal((0xFF, 0xFF, 0x01), (executableLast.RegionId, executableLast.SubregionId, executableLast.Terminator));
+        Assert.Equal(LocationSignatures.CompressedSave.Length, LocationSignatures.Executable.Length);
+    }
+
+    [Theory]
+    [InlineData(0x00, LocationKind.Sietch, "Sietch")]
+    [InlineData(0x10, LocationKind.Sietch, "Sietch")]
+    [InlineData(0x20, LocationKind.CarthagPalace, "Carthag Palace")]
+    [InlineData(0x21, LocationKind.Village, "Village")]
+    [InlineData(0x22, LocationKind.Fort, "Fort")]
+    [InlineData(0x2F, LocationKind.Fort, "Fort")]
+    [InlineData(0x30, LocationKind.ArrakeenPalace, "Arrakeen Palace")]
+    [InlineData(0x31, LocationKind.Unknown, "Unknown")]
+    public void LocationTypeCodesPreserveKindAndTitle(
+        byte rawType,
+        LocationKind expectedKind,
+        string expectedTitle)
+    {
+        var savegame = DuneSavegame.Parse(CreateCompressedDocument(), SavegameFormat.CompressedSave);
+        var location = savegame.Locations[0];
+
+        location.RawTypeCode = rawType;
+
+        Assert.Equal(expectedKind, location.Kind);
+        Assert.Equal(expectedTitle, new LocationDetailsViewModel(location).Type);
+    }
+
+    [Fact]
+    public void TroopChainMapsEveryLinkedTroopToItsLocationAndTerminatesCycles()
+    {
+        var document = CreateDocumentWithFremenTroops();
+        var firstTroopOffset = GetFremenTroopsOffset();
+        document[firstTroopOffset + FremenTroop.RecordSize + 1] = 1;
+
+        var savegame = DuneSavegame.Parse(
+            SavegameCompression.Compress(document),
+            SavegameFormat.CompressedSave);
+
+        var location = savegame.FindLocation(new LocationId(0x02, 0x01));
+        Assert.Same(location, savegame.FindFremenTroopLocation(new TroopId(1)));
+        Assert.Same(location, savegame.FindFremenTroopLocation(new TroopId(2)));
+        Assert.Null(savegame.FindFremenTroopLocation(new TroopId(3)));
+        Assert.Equal(2, savegame.FremenTroops.Count);
+    }
+
+    [Fact]
+    public void MilitaryRankEditorPreservesRankAndLabel()
+    {
+        var savegame = DuneSavegame.Parse(
+            SavegameCompression.Compress(CreateDocumentWithFremenTroops()),
+            SavegameFormat.CompressedSave);
+        var troop = Assert.Single(savegame.FremenTroops, troop => troop.Id.Value == 1);
+        var details = new FremenTroopDetailsViewModel(troop, savegame.Locations[0]);
+        var militaryRank = Assert.Single(details.Attributes, attribute => attribute.Label == "Military rank");
+
+        militaryRank.Value = 77;
+
+        Assert.Equal(77, troop.MilitaryRank);
+        Assert.Equal(77, militaryRank.Value);
+    }
+
+    [Fact]
+    public void SelectionTransitionsKeepExactlyOneActiveTarget()
+    {
+        var savegame = DuneSavegame.Parse(
+            SavegameCompression.Compress(CreateDocumentWithFremenTroops()),
+            SavegameFormat.CompressedSave);
+        var editor = new MainViewModel(new NoopPlatformService());
+        var location = savegame.Locations[0];
+        var troop = savegame.FremenTroops[0];
+        var locationMarker = CreateUninitialized<LocationMarkerViewModel>();
+        var troopMarker = CreateUninitialized<FremenTroopMarkerViewModel>();
+        SetAutoProperty(locationMarker, nameof(LocationMarkerViewModel.Location), location);
+        SetAutoProperty(troopMarker, nameof(FremenTroopMarkerViewModel.Location), location);
+        SetAutoProperty(troopMarker, nameof(FremenTroopMarkerViewModel.Troop), troop);
+
+        InvokeSelection(editor, "SelectLocation", locationMarker);
+        Assert.True(locationMarker.IsSelected);
+        Assert.NotNull(editor.SelectedLocation);
+        Assert.Null(editor.SelectedFremenTroop);
+        Assert.True(editor.HasLocationSelection);
+        Assert.False(editor.HasFremenTroopSelection);
+
+        InvokeSelection(editor, "SelectFremenTroop", troopMarker);
+        Assert.False(locationMarker.IsSelected);
+        Assert.True(troopMarker.IsSelected);
+        Assert.Null(editor.SelectedLocation);
+        Assert.NotNull(editor.SelectedFremenTroop);
+        Assert.False(editor.HasLocationSelection);
+        Assert.True(editor.HasFremenTroopSelection);
+
+        InvokeSelection(editor, "SelectFremenTroop", troopMarker);
+        Assert.False(troopMarker.IsSelected);
+        Assert.Null(editor.SelectedLocation);
+        Assert.Null(editor.SelectedFremenTroop);
+        Assert.False(editor.HasSelection);
+    }
+
+    [Fact]
+    public void MarkerProjectionPreservesEncodedCoordinatesAndTroopPlacement()
+    {
+        var locationCenter = MapProjection.Project(
+            new MapPosition(3, 4),
+            width: 1000,
+            height: 620,
+            margin: 20);
+        var placementOffset = MapProjection.GetTroopOffset(TroopPlacement.South);
+
+        Assert.Equal(31, locationCenter.X);
+        Assert.Equal(325, locationCenter.Y);
+        Assert.Equal(0, placementOffset.X);
+        Assert.Equal(13, placementOffset.Y);
+    }
+    [Fact]
     public void RejectsFileWithoutCompleteLocationBlock()
     {
         byte[] invalid = [0, 0, 0, 0, 4, 0];
@@ -260,12 +385,12 @@ public sealed class DuneSavegameTests
 
     private static byte[] CreateCompressedDocument()
     {
-        return SavegameCompression.Compress(CreateDecompressedDocument(LocSequences.compressed));
+        return SavegameCompression.Compress(CreateDecompressedDocument(LocationSignatures.CompressedSave));
     }
 
-    private static byte[] CreateDecompressedDocument(IReadOnlyList<Loc> sequences)
+    private static byte[] CreateDecompressedDocument(ReadOnlySpan<LocationSignature> sequences)
     {
-        var length = LocationBlockOffset + ((sequences.Count - 1) * Sietch.RecordSize) + 3;
+        var length = LocationBlockOffset + ((sequences.Length - 1) * DuneLocation.RecordSize) + 3;
         var data = new byte[length];
         data[0] = 0x02;
         data[2] = SavegameCompression.Marker;
@@ -276,17 +401,17 @@ public sealed class DuneSavegameTests
             data[index] = (byte)(0x80 + index);
         }
 
-        for (var index = 0; index < sequences.Count; index++)
+        for (var index = 0; index < sequences.Length; index++)
         {
             var sequence = sequences[index];
-            var offset = LocationBlockOffset + (index * Sietch.RecordSize);
-            data[offset] = sequence.v1;
-            data[offset + 1] = sequence.v2;
-            data[offset + 2] = sequence.v3;
+            var offset = LocationBlockOffset + (index * DuneLocation.RecordSize);
+            data[offset] = sequence.RegionId;
+            data[offset + 1] = sequence.SubregionId;
+            data[offset + 2] = sequence.Terminator;
 
-            if (index < sequences.Count - 1)
+            if (index < sequences.Length - 1)
             {
-                for (var field = 3; field < Sietch.RecordSize; field++)
+                for (var field = 3; field < DuneLocation.RecordSize; field++)
                 {
                     data[offset + field] = (byte)((index + field) & 0xFF);
                 }
@@ -298,7 +423,7 @@ public sealed class DuneSavegameTests
 
     private static byte[] CreateDocumentWithFremenTroops()
     {
-        var data = CreateDecompressedDocument(LocSequences.compressed);
+        var data = CreateDecompressedDocument(LocationSignatures.CompressedSave);
         var firstTroopOffset = data.Length - 1;
         Array.Resize(ref data, firstTroopOffset + (FremenTroop.RecordSize * 68));
         data[LocationBlockOffset + 0x09] = 1;
@@ -319,6 +444,31 @@ public sealed class DuneSavegameTests
         data[secondTroopOffset + 3] = 129;
         return data;
     }
+
+    private static int GetFremenTroopsOffset() =>
+        LocationBlockOffset + ((LocationSignatures.CompressedSave.Length - 1) * DuneLocation.RecordSize) + 2;
+
+    private static T CreateUninitialized<T>() where T : class =>
+        (T)System.Runtime.CompilerServices.RuntimeHelpers.GetUninitializedObject(typeof(T));
+
+    private static void SetAutoProperty<T>(object target, string propertyName, T value)
+    {
+        var field = target.GetType().GetField(
+            $"<{propertyName}>k__BackingField",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException($"No backing field exists for {propertyName}.");
+        field.SetValue(target, value);
+    }
+
+    private static void InvokeSelection(MainViewModel editor, string methodName, object marker)
+    {
+        var method = typeof(MainViewModel).GetMethod(
+            methodName,
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException($"No selection method named {methodName} exists.");
+        method.Invoke(editor, [marker]);
+    }
+
 
     private sealed class NoopPlatformService : IPlatformService
     {
