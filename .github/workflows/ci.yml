@@ -3,6 +3,7 @@ name: CI
 on:
   push:
     branches: [main]
+    tags: ['v*']
   pull_request:
   workflow_dispatch:
 
@@ -10,8 +11,34 @@ permissions:
   contents: read
 
 jobs:
+  resolve_version:
+    name: Resolve application version
+    runs-on: ubuntu-latest
+    outputs:
+      application_version: ${{ steps.version.outputs.value }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: jdx/mise-action@v4
+      - name: Resolve and validate version
+        id: version
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            version=${GITHUB_REF_NAME#v}
+            semver_pattern='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-((0|[1-9][0-9]*)|([0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*))(\.((0|[1-9][0-9]*)|([0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*)))*)?(\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$'
+            if ! [[ "$version" =~ $semver_pattern ]]; then
+              echo "Tag '$GITHUB_REF_NAME' is not a valid semantic version (expected vMAJOR.MINOR.PATCH with optional pre-release or build metadata)." >&2
+              exit 64
+            fi
+          else
+            version=$(mise exec -- dotnet msbuild src/DuneEdit.Desktop/DuneEdit.Desktop.csproj --nologo -getProperty:Version)
+          fi
+
+          echo "value=$version" >> "$GITHUB_OUTPUT"
+
   build-and-test:
     name: Build and test (${{ matrix.os }})
+    needs: resolve_version
     strategy:
       fail-fast: false
       matrix:
@@ -36,7 +63,7 @@ jobs:
 
   publish:
     name: Publish ${{ matrix.rid }}
-    needs: build-and-test
+    needs: [resolve_version, build-and-test]
     strategy:
       fail-fast: false
       matrix:
@@ -63,6 +90,9 @@ jobs:
           --output artifacts/${{ matrix.rid }}/desktop
           -p:DebugType=None
           -p:DebugSymbols=false
+          -p:Version=${{ needs.resolve_version.outputs.application_version }}
+          -p:InformationalVersion=${{ needs.resolve_version.outputs.application_version }}
+          -p:IncludeSourceRevisionInInformationalVersion=false
       - name: Publish F7
         run: >-
           mise exec -- dotnet publish src/F7/F7.csproj
@@ -72,6 +102,32 @@ jobs:
           --output artifacts/${{ matrix.rid }}/f7
           -p:DebugType=None
           -p:DebugSymbols=false
+          -p:Version=${{ needs.resolve_version.outputs.application_version }}
+          -p:InformationalVersion=${{ needs.resolve_version.outputs.application_version }}
+          -p:IncludeSourceRevisionInInformationalVersion=false
+      - name: Verify published versions
+        shell: pwsh
+        run: |
+          $expected = "${{ needs.resolve_version.outputs.application_version }}"
+          $assemblies = @(
+            "artifacts/${{ matrix.rid }}/desktop/DuneEdit.Desktop.dll",
+            "artifacts/${{ matrix.rid }}/f7/F7.dll"
+          )
+          foreach ($assembly in $assemblies) {
+            $actual = [System.Diagnostics.FileVersionInfo]::GetVersionInfo(
+              (Resolve-Path $assembly)
+            ).ProductVersion
+            if ($actual -ne $expected) {
+              throw "$assembly has product version '$actual'; expected '$expected'."
+            }
+          }
+      - name: Package macOS application
+        if: runner.os == 'macOS'
+        run: |
+          scripts/package-macos.sh \
+            "artifacts/${{ matrix.rid }}/desktop" \
+            "artifacts/${{ matrix.rid }}/DuneEdit-${{ matrix.rid }}.dmg" \
+            "${{ needs.resolve_version.outputs.application_version }}"
       - name: Exercise self-contained desktop artifact (Windows)
         if: runner.os == 'Windows'
         timeout-minutes: 3
@@ -81,13 +137,37 @@ jobs:
           $env:DOTNET_MULTILEVEL_LOOKUP = "0"
           & ".\artifacts\${{ matrix.rid }}\desktop\DuneEdit.Desktop.exe" "--artifact-compatibility-smoke"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Exercise self-contained desktop artifact (macOS)
+      - name: Exercise macOS application bundle
         if: runner.os == 'macOS'
         timeout-minutes: 3
-        run: >-
-          env DOTNET_ROOT="$RUNNER_TEMP/no-dotnet" DOTNET_MULTILEVEL_LOOKUP=0
-          "./artifacts/${{ matrix.rid }}/desktop/DuneEdit.Desktop"
-          --artifact-compatibility-smoke
+        run: |
+          dmg="artifacts/${{ matrix.rid }}/DuneEdit-${{ matrix.rid }}.dmg"
+          mount_point="$RUNNER_TEMP/duneedit-dmg"
+          mkdir -p "$mount_point"
+          hdiutil attach -quiet -nobrowse -readonly -mountpoint "$mount_point" "$dmg"
+          cleanup() {
+            hdiutil detach -quiet "$mount_point" || true
+          }
+          trap cleanup EXIT
+
+          plist="$mount_point/DuneEdit.app/Contents/Info.plist"
+          semantic_version="${{ needs.resolve_version.outputs.application_version }}"
+          bundle_version=${semantic_version%%[-+]*}
+          plutil -lint "$plist"
+          test "$(plutil -extract CFBundlePackageType raw -o - "$plist")" = "APPL"
+          test "$(plutil -extract CFBundleGetInfoString raw -o - "$plist")" = "$semantic_version"
+          test "$(plutil -extract CFBundleShortVersionString raw -o - "$plist")" = "$bundle_version"
+          test "$(plutil -extract CFBundleVersion raw -o - "$plist")" = "$bundle_version"
+          test -L "$mount_point/Applications"
+          test "$(readlink "$mount_point/Applications")" = "/Applications"
+          codesign --verify --deep --strict "$mount_point/DuneEdit.app"
+          env DOTNET_ROOT="$RUNNER_TEMP/no-dotnet" DOTNET_MULTILEVEL_LOOKUP=0 \
+            "$mount_point/DuneEdit.app/Contents/MacOS/DuneEdit.Desktop" \
+            --artifact-compatibility-smoke
+
+          hdiutil detach -quiet "$mount_point"
+          trap - EXIT
+          rm -rf "artifacts/${{ matrix.rid }}/desktop"
       - name: Exercise self-contained desktop artifact (Linux/Xvfb)
         if: runner.os == 'Linux'
         timeout-minutes: 3
@@ -101,3 +181,57 @@ jobs:
           name: DuneEdit-${{ matrix.rid }}
           path: artifacts/${{ matrix.rid }}
           if-no-files-found: error
+
+  release:
+    name: Create GitHub release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [resolve_version, publish]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: DuneEdit-*
+          path: release-artifacts
+      - name: Package release assets
+        run: |
+          mkdir release-assets
+          (
+            cd release-artifacts/DuneEdit-win-x64/desktop
+            zip -qr "$GITHUB_WORKSPACE/release-assets/DuneEdit-win-x64.zip" .
+          )
+          (
+            cd release-artifacts/DuneEdit-win-x64/f7
+            zip -qr "$GITHUB_WORKSPACE/release-assets/F7-win-x64.zip" .
+          )
+          tar -C release-artifacts/DuneEdit-linux-x64/desktop \
+            -czf release-assets/DuneEdit-linux-x64.tar.gz .
+          tar -C release-artifacts/DuneEdit-linux-x64/f7 \
+            -czf release-assets/F7-linux-x64.tar.gz .
+          cp release-artifacts/DuneEdit-osx-arm64/DuneEdit-osx-arm64.dmg release-assets/
+          tar -C release-artifacts/DuneEdit-osx-arm64/f7 \
+            -czf release-assets/F7-osx-arm64.tar.gz .
+      - name: Create or update release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ needs.resolve_version.outputs.application_version }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" release-assets/* \
+              --clobber \
+              --repo "$GITHUB_REPOSITORY"
+          else
+            release_flags=()
+            release_core=${RELEASE_VERSION%%+*}
+            if [[ "$release_core" == *-* ]]; then
+              release_flags+=(--prerelease)
+            fi
+            gh release create "$GITHUB_REF_NAME" release-assets/* \
+              --verify-tag \
+              --title "DuneEdit $RELEASE_VERSION" \
+              --generate-notes \
+              --repo "$GITHUB_REPOSITORY" \
+              "${release_flags[@]}"
+          fi
