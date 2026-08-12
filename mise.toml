@@ -8,6 +8,10 @@ run = "dotnet restore"
 depends = ["restore"]
 run = "dotnet build --no-restore"
 
+[tasks.lint]
+depends = ["restore"]
+run = "dotnet build --no-restore --configuration Release"
+
 [tasks.test]
 depends = ["build"]
 run = "dotnet test --no-build"
