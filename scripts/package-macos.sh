@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
+script_directory=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+app_icon="$script_directory/../src/DuneEdit.Desktop/Assets/AppIcon/DuneEdit.icns"
+
 
 if [[ $# -lt 2 || $# -gt 3 ]]; then
   echo "Usage: $0 <publish-directory> <output.dmg> [semantic-version]" >&2
@@ -16,6 +19,11 @@ bundle_identifier=io.github.boazy.DuneEdit
 
 if [[ ! -d "$publish_directory" ]]; then
   echo "Publish directory does not exist: $publish_directory" >&2
+  exit 66
+fi
+
+if [[ ! -f "$app_icon" ]]; then
+  echo "macOS application icon does not exist: $app_icon" >&2
   exit 66
 fi
 
@@ -41,15 +49,18 @@ dmg_root="$work_root/dmg"
 app_bundle="$dmg_root/$app_name.app"
 contents_directory="$app_bundle/Contents"
 macos_directory="$contents_directory/MacOS"
+resources_directory="$contents_directory/Resources"
 info_plist="$contents_directory/Info.plist"
 
-mkdir -p "$macos_directory"
+mkdir -p "$macos_directory" "$resources_directory"
 /usr/bin/ditto "$publish_directory" "$macos_directory"
+/usr/bin/ditto "$app_icon" "$resources_directory/DuneEdit.icns"
 
 /usr/bin/plutil -create xml1 "$info_plist"
 /usr/bin/plutil -insert CFBundleDevelopmentRegion -string en "$info_plist"
 /usr/bin/plutil -insert CFBundleDisplayName -string "$app_name" "$info_plist"
 /usr/bin/plutil -insert CFBundleExecutable -string "$executable_name" "$info_plist"
+/usr/bin/plutil -insert CFBundleIconFile -string DuneEdit.icns "$info_plist"
 /usr/bin/plutil -insert CFBundleIdentifier -string "$bundle_identifier" "$info_plist"
 /usr/bin/plutil -insert CFBundleInfoDictionaryVersion -string 6.0 "$info_plist"
 /usr/bin/plutil -insert CFBundleName -string "$app_name" "$info_plist"

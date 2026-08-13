@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">DuneEdit — Rising Maw, small-size artwork</title>
+  <desc id="desc">An oversized, flat-color three-lobed sandworm maw tuned for icons from 16 to 32 pixels.</desc>
+  <defs>
+    <clipPath id="tile">
+      <rect x="32" y="32" width="960" height="960" rx="218"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#tile)">
+    <rect width="1024" height="1024" fill="#244F7D"/>
+
+    <circle cx="512" cy="487" r="368" fill="#5E281B"/>
+    <circle cx="512" cy="487" r="316" fill="#C86728"/>
+    <circle cx="512" cy="487" r="229" fill="#180D13"/>
+
+    <path d="M407 273c67-24 143-24 210 0l-46 172-59 67-59-67Z" fill="#FFD36C"/>
+    <path d="M720 563c-32 77-86 134-160 171l-75-165 27-82 83 19Z" fill="#E99132"/>
+    <path d="M304 563c32 77 86 134 160 171l75-165-27-82-83 19Z" fill="#F3B246"/>
+
+
+  </g>
+  <rect x="43" y="43" width="938" height="938" rx="207" fill="none" stroke="#FFD36C" stroke-width="22" opacity="0.72"/>
+</svg>

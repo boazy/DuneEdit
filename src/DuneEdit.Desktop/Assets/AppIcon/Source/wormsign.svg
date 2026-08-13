@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">DuneEdit — Wormsign</title>
+  <desc id="desc">A top-down graphic of a sandworm maw breaking concentric desert ripples over a subtle map grid.</desc>
+  <defs>
+    <linearGradient id="night" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#101C43"/>
+      <stop offset="1" stop-color="#315E82"/>
+    </linearGradient>
+    <radialGradient id="sand" cx="0.42" cy="0.37" r="0.8">
+      <stop offset="0" stop-color="#FFF1A8"/>
+      <stop offset="0.5" stop-color="#E8B44B"/>
+      <stop offset="1" stop-color="#A64E24"/>
+    </radialGradient>
+    <linearGradient id="lip" x1="0.15" y1="0.1" x2="0.86" y2="0.9">
+      <stop offset="0" stop-color="#FFD66D"/>
+      <stop offset="0.44" stop-color="#D5782E"/>
+      <stop offset="1" stop-color="#6E2E1C"/>
+    </linearGradient>
+    <clipPath id="tile">
+      <rect x="32" y="32" width="960" height="960" rx="218"/>
+    </clipPath>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="18"/>
+      <feOffset dy="18"/>
+      <feColorMatrix values="0 0 0 0 .08 0 0 0 0 .035 0 0 0 0 .02 0 0 0 .56 0"/>
+      <feBlend in="SourceGraphic"/>
+    </filter>
+  </defs>
+
+  <g clip-path="url(#tile)">
+    <rect width="1024" height="1024" fill="url(#night)"/>
+    <g fill="none" stroke="#74A3BE" stroke-width="8" opacity="0.16">
+      <path d="M128 32v960M288 32v960M448 32v960M608 32v960M768 32v960M928 32v960"/>
+      <path d="M32 128h960M32 288h960M32 448h960M32 608h960M32 768h960M32 928h960"/>
+    </g>
+    <path d="M-41 750c142-29 245-87 309-173 93-124 210-185 352-182 162 3 310 87 444 253v421H-41Z" fill="url(#sand)"/>
+
+    <g fill="none" stroke-linecap="round">
+      <path d="M106 771c149 17 242-34 280-153 35-112 123-173 264-185 117-9 214 37 291 140" stroke="#FFF1A7" stroke-width="28" opacity="0.72"/>
+      <path d="M85 849c202 24 331-48 388-217 29-86 102-130 219-132 104-2 198 42 281 132" stroke="#A65124" stroke-width="30" opacity="0.58"/>
+      <path d="M147 933c215 6 353-83 415-267 19-58 70-89 151-94 92-6 176 33 253 118" stroke="#FFD878" stroke-width="26" opacity="0.55"/>
+    </g>
+
+    <g filter="url(#shadow)">
+      <circle cx="583" cy="510" r="234" fill="#6D301E"/>
+      <circle cx="583" cy="510" r="202" fill="url(#lip)"/>
+      <circle cx="583" cy="510" r="133" fill="#170D12"/>
+
+      <path d="M583 303c-45 32-77 73-95 124-16 46-17 91-2 137l96-54 1-207Z" fill="#F5B347"/>
+      <path d="M782 566c-5-55-24-104-58-146-31-38-68-65-112-80l-29 170 199 56Z" fill="#9A4422"/>
+      <path d="M436 660c50 24 103 30 158 19 48-10 89-31 124-63l-135-106-147 150Z" fill="#D36D29"/>
+
+      <g fill="#F0A33A">
+        <path d="m539 395 25 68-50-24-31-49Z"/>
+        <path d="m665 437-51 43 5-55 31-48Z"/>
+        <path d="m611 596-65-25 50-25 58 4Z"/>
+      </g>
+      <circle cx="583" cy="510" r="159" fill="none" stroke="#FFD36B" stroke-width="14" opacity="0.58" stroke-dasharray="29 18"/>
+    </g>
+
+    <g fill="#12315A" opacity="0.72">
+      <path d="M88 121h186v16H88zM88 121h16v185H88z"/>
+      <path d="M936 121H750v16h186zM920 121h16v185h-16z"/>
+      <path d="M88 903h186v-16H88zM88 718h16v185H88z"/>
+      <path d="M936 903H750v-16h186zM920 718h16v185h-16z"/>
+    </g>
+  </g>
+  <rect x="40" y="40" width="944" height="944" rx="210" fill="none" stroke="#F4C55D" stroke-width="16" opacity="0.4"/>
+</svg>

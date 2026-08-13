@@ -164,6 +164,8 @@ jobs:
           test "$(plutil -extract CFBundleGetInfoString raw -o - "$plist")" = "$semantic_version"
           test "$(plutil -extract CFBundleShortVersionString raw -o - "$plist")" = "$bundle_version"
           test "$(plutil -extract CFBundleVersion raw -o - "$plist")" = "$bundle_version"
+          test "$(plutil -extract CFBundleIconFile raw -o - "$plist")" = "DuneEdit.icns"
+          test -f "$mount_point/DuneEdit.app/Contents/Resources/DuneEdit.icns"
           test -L "$mount_point/Applications"
           test "$(readlink "$mount_point/Applications")" = "/Applications"
           codesign --verify --deep --strict "$mount_point/DuneEdit.app"
@@ -177,11 +179,31 @@ jobs:
       - name: Exercise self-contained desktop artifact (Linux/Xvfb)
         if: runner.os == 'Linux'
         timeout-minutes: 3
-        run: >-
-          xvfb-run --auto-servernum
-          env DOTNET_ROOT="$RUNNER_TEMP/no-dotnet" DOTNET_MULTILEVEL_LOOKUP=0
-          "./artifacts/${{ matrix.rid }}/desktop/DuneEdit.Desktop"
-          --artifact-compatibility-smoke
+        run: |
+          desktop_root="./artifacts/${{ matrix.rid }}/desktop"
+          desktop_entry="$desktop_root/share/applications/io.github.boazy.DuneEdit.desktop"
+          test -f "$desktop_entry"
+          test -x "$desktop_root/install.sh"
+          test "$(sed -n 's/^Exec=//p' "$desktop_entry")" = "DuneEdit.Desktop %f"
+          test "$(sed -n 's/^Icon=//p' "$desktop_entry")" = "io.github.boazy.DuneEdit"
+          for size in 16 24 32 48 64 128 256 512; do
+            test -f "$desktop_root/share/icons/hicolor/${size}x${size}/apps/io.github.boazy.DuneEdit.png"
+          done
+          test -f "$desktop_root/share/icons/hicolor/scalable/apps/io.github.boazy.DuneEdit.svg"
+          local_root="$RUNNER_TEMP/duneedit-local"
+          XDG_DATA_HOME="$local_root/share" \
+            DUNEEDIT_INSTALL_ROOT="$local_root/app" \
+            "$desktop_root/install.sh"
+          installed_entry="$local_root/share/applications/io.github.boazy.DuneEdit.desktop"
+          test -f "$installed_entry"
+          test "$(sed -n 's/^Exec=//p' "$installed_entry")" = \
+            "\"$local_root/app/DuneEdit.Desktop\" %f"
+          test "$(sed -n 's/^TryExec=//p' "$installed_entry")" = \
+            "\"$local_root/app/DuneEdit.Desktop\""
+          test -f "$local_root/share/icons/hicolor/512x512/apps/io.github.boazy.DuneEdit.png"
+          xvfb-run --auto-servernum \
+            env DOTNET_ROOT="$RUNNER_TEMP/no-dotnet" DOTNET_MULTILEVEL_LOOKUP=0 \
+            "$desktop_root/DuneEdit.Desktop" --artifact-compatibility-smoke
       - uses: actions/upload-artifact@v4
         with:
           name: DuneEdit-${{ matrix.rid }}

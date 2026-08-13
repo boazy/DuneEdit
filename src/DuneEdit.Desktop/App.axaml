@@ -18,6 +18,7 @@
   <Application.Styles>
     <FluentTheme />
     <Style Selector="Window">
+      <Setter Property="Icon" Value="/Assets/AppIcon/DuneEdit.png" />
       <Setter Property="FontFamily" Value="avares://Avalonia.Fonts.Inter/Assets#Inter" />
       <Setter Property="Foreground" Value="{StaticResource BodyBrush}" />
       <Setter Property="Background" Value="{StaticResource NightBrush}" />

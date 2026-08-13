@@ -4,11 +4,25 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\AppIcon\DuneEdit.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
     <Folder Include="Models\" />
-    <AvaloniaResource Include="Assets\**" />
+    <AvaloniaResource Include="Assets\**" Exclude="Assets\AppIcon\**" />
+    <AvaloniaResource Include="Assets\AppIcon\DuneEdit.png" />
+  </ItemGroup>
+
+  <ItemGroup Condition="$([System.String]::Copy('$(RuntimeIdentifier)').StartsWith('linux-'))">
+    <Content Include="Packaging\Linux\io.github.boazy.DuneEdit.desktop"
+             Link="share\applications\io.github.boazy.DuneEdit.desktop"
+             CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="Packaging\Linux\install.sh"
+             Link="install.sh"
+             CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="Assets\AppIcon\Linux\hicolor\**"
+             Link="share\icons\hicolor\%(RecursiveDir)%(Filename)%(Extension)"
+             CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

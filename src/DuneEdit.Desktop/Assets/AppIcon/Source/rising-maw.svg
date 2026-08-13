@@ -1,0 +1,123 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">DuneEdit — Rising Maw</title>
+  <desc id="desc">A constant-diameter segmented sandworm rises from a golden dune, its three-jawed mouth opening toward the viewer in three-quarter view.</desc>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0.92" y2="1">
+      <stop offset="0" stop-color="#122653"/>
+      <stop offset="0.58" stop-color="#35659A"/>
+      <stop offset="1" stop-color="#8FB1BD"/>
+    </linearGradient>
+    <radialGradient id="sun" cx="0.42" cy="0.38" r="0.62">
+      <stop offset="0" stop-color="#FFF7C7"/>
+      <stop offset="0.66" stop-color="#FFD778"/>
+      <stop offset="1" stop-color="#E99B36"/>
+    </radialGradient>
+    <linearGradient id="farDune" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFE9A0"/>
+      <stop offset="0.55" stop-color="#E9B950"/>
+      <stop offset="1" stop-color="#B86727"/>
+    </linearGradient>
+    <linearGradient id="body" x1="0.06" y1="0.88" x2="0.91" y2="0.08">
+      <stop offset="0" stop-color="#71321E"/>
+      <stop offset="0.34" stop-color="#A95224"/>
+      <stop offset="0.7" stop-color="#C9782E"/>
+      <stop offset="1" stop-color="#E8A947"/>
+    </linearGradient>
+    <linearGradient id="lip" x1="0.1" y1="0" x2="0.9" y2="1">
+      <stop offset="0" stop-color="#FFD36A"/>
+      <stop offset="0.36" stop-color="#D68130"/>
+      <stop offset="0.74" stop-color="#9A4422"/>
+      <stop offset="1" stop-color="#542319"/>
+    </linearGradient>
+    <linearGradient id="frontDune" x1="0.12" y1="0" x2="0.92" y2="1">
+      <stop offset="0" stop-color="#FFF1A8"/>
+      <stop offset="0.48" stop-color="#E7B447"/>
+      <stop offset="1" stop-color="#C27329"/>
+    </linearGradient>
+    <clipPath id="tile">
+      <rect x="32" y="32" width="960" height="960" rx="218"/>
+    </clipPath>
+    <mask id="wormTube" maskUnits="userSpaceOnUse" x="-80" y="80" width="1040" height="900">
+      <rect x="-80" y="80" width="1040" height="900" fill="#000"/>
+      <path d="M66 803C201 770 304 699 408 611 531 508 651 414 790 302"
+            fill="none" stroke="#FFF" stroke-width="310" stroke-linecap="round"/>
+    </mask>
+    <filter id="shadow" x="-30%" y="-30%" width="170%" height="180%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="18"/>
+      <feOffset dy="22"/>
+      <feColorMatrix values="0 0 0 0 0.10 0 0 0 0 0.055 0 0 0 0 0.035 0 0 0 .58 0"/>
+      <feBlend in="SourceGraphic"/>
+    </filter>
+  </defs>
+
+  <g clip-path="url(#tile)">
+    <rect width="1024" height="1024" fill="url(#sky)"/>
+    <circle cx="238" cy="286" r="164" fill="url(#sun)" opacity="0.95"/>
+    <path d="M-30 649C105 546 230 538 351 595c116 55 233 47 355-15 118-60 238-51 348 22v236H-30Z" fill="url(#farDune)"/>
+    <path d="M-35 696c174-72 328-55 465 52 106 83 214 87 325 14 93-61 195-64 304-11v175H-35Z" fill="#D4872F" opacity="0.62"/>
+
+    <ellipse cx="485" cy="816" rx="370" ry="112" fill="#381D17" opacity="0.52"/>
+    <g filter="url(#shadow)">
+      <path d="M66 803C201 770 304 699 408 611 531 508 651 414 790 302"
+            fill="none" stroke="url(#body)" stroke-width="310" stroke-linecap="round"/>
+      <path d="M69 768C207 733 303 666 405 582 523 484 643 394 778 292"
+            fill="none" stroke="#F2B750" stroke-width="56" stroke-linecap="round" opacity="0.25"/>
+      <path d="M62 846C196 815 310 743 420 650 538 550 664 452 805 341"
+            fill="none" stroke="#4C2219" stroke-width="52" stroke-linecap="round" opacity="0.25"/>
+
+      <g mask="url(#wormTube)" fill="none" stroke-linecap="round">
+        <path d="M89 654C162 683 226 753 245 842" stroke="#542419" stroke-width="31" opacity="0.72"/>
+        <path d="M100 646C170 674 231 739 249 821" stroke="#F0AE47" stroke-width="10" opacity="0.56"/>
+
+        <path d="M194 570C273 605 331 678 345 769" stroke="#602719" stroke-width="32" opacity="0.72"/>
+        <path d="M207 561C283 596 337 664 351 746" stroke="#F2B34B" stroke-width="10" opacity="0.55"/>
+
+        <path d="M305 490C380 520 440 587 459 669" stroke="#64291A" stroke-width="31" opacity="0.7"/>
+        <path d="M318 481C390 511 446 573 466 647" stroke="#F2B64E" stroke-width="10" opacity="0.54"/>
+
+        <path d="M421 408C493 435 553 496 576 578" stroke="#612819" stroke-width="30" opacity="0.68"/>
+        <path d="M434 399C502 425 559 483 583 557" stroke="#F6BE56" stroke-width="10" opacity="0.52"/>
+
+        <path d="M540 329C606 354 664 409 690 486" stroke="#5D2618" stroke-width="29" opacity="0.66"/>
+        <path d="M553 320C616 345 670 397 697 466" stroke="#F7C45C" stroke-width="9" opacity="0.5"/>
+
+        <path d="M652 260C710 281 760 326 786 390" stroke="#592318" stroke-width="28" opacity="0.62"/>
+        <path d="M664 252C720 274 766 316 793 373" stroke="#F8C961" stroke-width="9" opacity="0.48"/>
+      </g>
+
+      <g transform="translate(790 302) rotate(43)">
+        <ellipse rx="170" ry="129" fill="url(#lip)"/>
+        <ellipse rx="146" ry="108" fill="#77301D"/>
+        <ellipse rx="124" ry="89" fill="#180D13"/>
+        <ellipse rx="133" ry="98" fill="none" stroke="#F0A43B" stroke-width="12" opacity="0.6"/>
+
+        <path d="M-111-47C-83-79-45-91-7-76C-20-50-16-25 0-3C-41-25-78-40-111-47Z" fill="#EBA23C"/>
+        <path d="M111-47C83-79 45-91 7-76C20-50 16-25 0-3C41-25 78-40 111-47Z" fill="#C66728"/>
+        <path d="M-88 55C-43 88 43 88 88 55C53 47 25 27 0 3C-25 27-53 47-88 55Z" fill="#F2B448"/>
+
+        <path d="M-106-43C-80-66-53-74-26-70C-55-58-79-43-98-25Z" fill="#FFD36B" opacity="0.56"/>
+        <path d="M106-43C80-66 53-74 26-70C55-58 79-43 98-25Z" fill="#E99A36" opacity="0.52"/>
+        <path d="M-75 56C-38 75 38 75 75 56C40 61 14 50 0 29C-14 50-40 61-75 56Z" fill="#FFD36B" opacity="0.48"/>
+
+        <g fill="#FFE08A">
+          <path d="m-83-48 19 4-10 17Z"/>
+          <path d="m-53-61 18 8-13 14Z"/>
+          <path d="m-22-65 15 11-14 10Z"/>
+          <path d="m83-48-19 4 10 17Z"/>
+          <path d="m53-61-18 8 13 14Z"/>
+          <path d="m22-65-15 11 14 10Z"/>
+          <path d="m-56 54 13-14 8 17Z"/>
+          <path d="m-24 67 10-17 11 15Z"/>
+          <path d="m56 54-13-14-8 17Z"/>
+          <path d="m24 67-10-17-11 15Z"/>
+        </g>
+        <circle r="12" fill="#0A0710"/>
+      </g>
+    </g>
+
+    <path d="M-34 860c141-88 286-91 435-9 139 77 276 76 410-3 91-54 183-64 276-31v240H-34Z" fill="url(#frontDune)"/>
+    <path d="M-30 918c188-61 357-45 507 48 118 74 262 74 431 0 52-22 104-30 155-24v111H-30Z" fill="#FFD97B" opacity="0.52"/>
+    <path d="M83 878c106-29 202-23 289 20" fill="none" stroke="#FFF0AF" stroke-width="16" stroke-linecap="round" opacity="0.7"/>
+  </g>
+  <rect x="40" y="40" width="944" height="944" rx="210" fill="none" stroke="#FFD77A" stroke-width="16" opacity="0.42"/>
+</svg>

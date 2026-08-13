@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=DuneEdit
+GenericName=Dune save-game editor
+Comment=Edit classic Dune save-game data
+Exec=DuneEdit.Desktop %f
+TryExec=DuneEdit.Desktop
+Icon=io.github.boazy.DuneEdit
+Terminal=false
+StartupNotify=true
+StartupWMClass=DuneEdit.Desktop
+Categories=Game;Utility;
